@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -44,6 +45,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
+  List<StripeReader>? readers;
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -71,10 +73,42 @@ class _MyAppState extends State<MyApp> {
                 child: const Text("Scan Devices"),
                 onPressed: () async {
                   stripeTerminal.discoverReaders().listen((readers) {
-                    print(readers.length);
+                    setState(() {
+                      this.readers = readers;
+                    });
                   });
                 },
               ),
+              TextButton(
+                child: const Text("Connection Status"),
+                onPressed: () async {
+                  stripeTerminal.connectionStatus().then((status) {
+                    print("Connection status: ${status.toString()}");
+                  });
+                },
+              ),
+              TextButton(
+                child: const Text("Connected Device"),
+                onPressed: () async {
+                  stripeTerminal
+                      .fetchConnectedReader()
+                      .then((StripeReader? reader) {
+                    print("Connection Device: ${reader?.serialNumber}");
+                  });
+                },
+              ),
+              if (readers != null)
+                ...readers!.map(
+                  (e) => ListTile(
+                    title: Text(e.serialNumber),
+                    trailing: Text(describeEnum(e.batteryStatus)),
+                    leading: Text(e.locationId),
+                    onTap: () async {
+                      bool connected = await stripeTerminal.connectToReader(e);
+                    },
+                    subtitle: Text(describeEnum(e.deviceType)),
+                  ),
+                )
             ],
           ),
         ),

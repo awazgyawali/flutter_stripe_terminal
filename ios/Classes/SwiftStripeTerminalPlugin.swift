@@ -2,7 +2,8 @@ import Flutter
 import UIKit
 import StripeTerminal
 
-public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelegate {
+public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelegate, BluetoothReaderDelegate {
+    
     
     let stripeAPIClient: StripeAPIClient
     let methodChannel: FlutterMethodChannel
@@ -49,6 +50,52 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                 }
             })
             break;
+            
+        case "fetchConnectedReader":
+            result(Terminal.shared.connectedReader?.toDict())
+            break;
+        case "connectionStatus":
+            result(Terminal.shared.connectionStatus.rawValue)
+            break;
+            
+        case "connectToReader":
+            if(Terminal.shared.connectionStatus == ConnectionStatus.notConnected){
+                let arguments = call.arguments as! Dictionary<String, Any>?
+                
+                let locationId = arguments!["locationId"] as? String?
+                let readerJson = arguments!["reader"] as! Dictionary<String, Any>?
+                
+                let reader = Reader.decodedObject(fromJSON: readerJson)
+                
+                let connectionConfig = BluetoothConnectionConfiguration(
+                    locationId: locationId ?? reader!.locationId!
+                )
+                
+                Terminal.shared.connectBluetoothReader(reader!, delegate: self, connectionConfig: connectionConfig) { reader, error in
+                    if reader != nil {
+                        result(true)
+                    } else {
+                        result(false)
+                    }
+                }
+                
+            } else {
+                result(false)
+            }
+            
+            break;
+            
+        case "readCardDetail":
+            let params =  ReadReusableCardParameters()
+            
+            Terminal.shared.readReusableCard(params) { paymentMethod, error in
+                if(paymentMethod != nil){
+                    result(paymentMethod?.card?.toDict())
+                } else {
+                    result("Unable to read card detail.")
+                }
+            }
+            break;
         default:
             print("Unsupported function called")
         }
@@ -56,24 +103,69 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
     
     public func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
         let parsedReaders = readers.map { reader -> Dictionary<String, Any> in
-            var dict =  Dictionary<String, Any>()
-            dict["serialNumber"] = reader.serialNumber
-            dict["originalJSON"] = reader.originalJSON
-            dict["availableUpdate"] = reader.availableUpdate
-            dict["batteryLevel"] = reader.batteryLevel
-            dict["batteryStatus"] = reader.batteryStatus
-            dict["deviceSoftwareVersion"] = reader.deviceSoftwareVersion
-            dict["deviceType"] = reader.deviceType
-            dict["locationId"] = reader.locationId
-            dict["ipAddress"] = reader.ipAddress
-            dict["isCharging"] = reader.isCharging
-            dict["label"] = reader.label
-            dict["locationStatus"] = reader.locationStatus
-            dict["stripeId"] = reader.stripeId
-            dict["simulated"] = reader.simulated
-            return dict
-            
+            return reader.toDict()
         }
         methodChannel.invokeMethod("onReadersFound", arguments: parsedReaders)
+    }
+    
+    public func reader(_ reader: Reader, didReportAvailableUpdate update: ReaderSoftwareUpdate) {
+        
+    }
+    
+    public func reader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
+        
+    }
+    
+    public func reader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
+        
+    }
+    
+    public func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
+        
+    }
+    
+    public func reader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions = []) {
+        
+    }
+    
+    public func reader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
+        
+    }
+    
+}
+
+
+extension Reader{
+    func toDict()-> Dictionary<String, Any>{
+        var dict =  Dictionary<String, Any>()
+        dict["serialNumber"] = self.serialNumber
+        dict["originalJSON"] = self.originalJSON
+        dict["availableUpdate"] = self.availableUpdate != nil
+        dict["batteryLevel"] = self.batteryLevel
+        dict["batteryStatus"] = self.batteryStatus.rawValue
+        dict["deviceSoftwareVersion"] = self.deviceSoftwareVersion
+        dict["deviceType"] = self.deviceType.rawValue
+        dict["locationId"] = self.locationId
+        dict["ipAddress"] = self.ipAddress
+        dict["isCharging"] = self.isCharging
+        dict["label"] = self.label
+        dict["locationStatus"] = self.locationStatus.rawValue
+        dict["stripeId"] = self.stripeId
+        dict["simulated"] = self.simulated
+        return dict;
+    }
+}
+
+extension CardDetails {
+    func toDict() ->Dictionary<String, Any>{
+        var dict =  Dictionary<String, Any>()
+        dict["brand"] = self.brand
+        dict["country"] = self.country
+        dict["expMonth"] = self.expMonth
+        dict["expYear"] = self.expYear
+        dict["fingerprint"] = self.fingerprint
+        dict["last4"] = self.last4
+        dict["funding"] = self.funding.rawValue
+        return dict;
     }
 }
