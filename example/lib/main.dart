@@ -19,7 +19,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: "http://localhost:8080/",
+      baseUrl: "http://192.168.1.102:8080/",
     ),
   );
 
@@ -56,22 +56,26 @@ class _MyAppState extends State<MyApp> {
           child: Column(
             children: [
               TextButton(
-                child: const Text("Get Connection Token"),
+                child: const Text("Init Stripe"),
                 onPressed: () async {
-                  String connectionToken = await getConnectionString();
+                  stripeTerminal = StripeTerminal(
+                    fetchToken: getConnectionString,
+                  );
                 },
               ),
               TextButton(
-                child: const Text("Test communcation"),
+                child: const Text("Get Connection Token"),
                 onPressed: () async {
-                  String testMessage = await stripeTerminal.test();
-                  print(testMessage);
+                  String connectionToken = await getConnectionString();
+                  print(connectionToken);
                 },
               ),
               TextButton(
                 child: const Text("Scan Devices"),
                 onPressed: () async {
-                  stripeTerminal.discoverReaders().listen((readers) {
+                  stripeTerminal
+                      .discoverReaders(simulated: true)
+                      .listen((readers) {
                     setState(() {
                       this.readers = readers;
                     });

@@ -33,10 +33,6 @@ class StripeTerminal {
     _channel.invokeMethod("init");
   }
 
-  Future test() async {
-    return _channel.invokeMethod("test");
-  }
-
   Future<bool> connectToReader(
     StripeReader reader, {
     String? locationId,
@@ -77,8 +73,12 @@ class StripeTerminal {
 
   final StreamController<List<StripeReader>> _readerStreamController =
       StreamController<List<StripeReader>>();
-  Stream<List<StripeReader>> discoverReaders() {
-    _channel.invokeMethod("discoverReaders#start");
+  Stream<List<StripeReader>> discoverReaders({
+    bool simulated = false,
+  }) {
+    _channel.invokeMethod("discoverReaders#start", {
+      "simulated": simulated,
+    });
     _readerStreamController.onCancel = () {
       _channel.invokeMethod("discoverReaders#stop");
       _readerStreamController.close();

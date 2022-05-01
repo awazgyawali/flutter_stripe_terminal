@@ -29,9 +29,11 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
             result(nil)
             break;
         case "discoverReaders#start":
+            let arguments = call.arguments as! Dictionary<String, Any>
+            let simulated = arguments["simulated"] as! Bool
             let config = DiscoveryConfiguration(
                 discoveryMethod: .bluetoothScan,
-                simulated: true
+                simulated: simulated
             )
             
             self.discoverCancelable = Terminal.shared.discoverReaders(config, delegate: self) { error in

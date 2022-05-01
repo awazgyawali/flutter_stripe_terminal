@@ -51,24 +51,25 @@ class StripePaymentMethod {
 
 class BillingDetails {
   BillingDetails({
-    required this.address,
+    this.address,
     this.email,
     this.name,
     this.phone,
   });
 
-  Address address;
+  Address? address;
   String? email, name, phone;
 
   factory BillingDetails.fromJson(Map json) => BillingDetails(
-        address: Address.fromJson(json["address"]),
+        address:
+            json["address"] != null ? Address.fromJson(json["address"]) : null,
         email: json["email"],
         name: json["name"],
         phone: json["phone"],
       );
 
   Map toJson() => {
-        "address": address.toJson(),
+        "address": address?.toJson(),
         "email": email,
         "name": name,
         "phone": phone,
@@ -115,7 +116,7 @@ class Card {
     required this.fingerprint,
     required this.funding,
     required this.last4,
-    required this.networks,
+    this.networks,
   });
 
   String brand;
@@ -125,7 +126,7 @@ class Card {
   String fingerprint;
   String funding;
   String last4;
-  Networks networks;
+  Networks? networks;
 
   factory Card.fromJson(Map json) => Card(
         brand: json["brand"],
@@ -135,7 +136,9 @@ class Card {
         fingerprint: json["fingerprint"],
         funding: json["funding"],
         last4: json["last4"],
-        networks: Networks.fromJson(json["networks"]),
+        networks: json["networks"] != null
+            ? Networks.fromJson(json["networks"])
+            : null,
       );
 
   Map toJson() => {
@@ -146,7 +149,7 @@ class Card {
         "fingerprint": fingerprint,
         "funding": funding,
         "last4": last4,
-        "networks": networks.toJson(),
+        "networks": networks?.toJson(),
       };
 }
 

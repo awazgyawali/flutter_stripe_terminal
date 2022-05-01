@@ -85,6 +85,8 @@ enum DeviceType {
   chipper1X,
 
   wiseCube,
+
+  unknown
 }
 
 enum ConnectionStatus { notConnected, connected, connecting }
