@@ -3,8 +3,6 @@
 
 A flutter plugin to scan stripe readers and connect to the them and get the payment methods.
 
-# Getting Started
-
 ## Installation
 
 ### Android
