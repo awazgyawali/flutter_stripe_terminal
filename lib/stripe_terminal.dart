@@ -71,8 +71,7 @@ class StripeTerminal {
   }
 
   Future<StripePaymentMethod> readPaymentMethod() async {
-    Map<String, dynamic> cardDetail =
-        await _channel.invokeMethod("readPaymentMethod");
+    Map cardDetail = await _channel.invokeMethod("readPaymentMethod");
     return StripePaymentMethod.fromJson(cardDetail);
   }
 

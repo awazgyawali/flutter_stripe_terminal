@@ -92,7 +92,7 @@ class _MyAppState extends State<MyApp> {
                   stripeTerminal
                       .fetchConnectedReader()
                       .then((StripeReader? reader) {
-                    print("Connection Device: ${reader?.serialNumber}");
+                    print("Connection Device: ${reader?.toJson()}");
                   });
                 },
               ),

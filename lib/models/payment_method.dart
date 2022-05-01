@@ -23,8 +23,7 @@ class StripePaymentMethod {
   Map? metadata;
   String type;
 
-  factory StripePaymentMethod.fromJson(Map<String, dynamic> json) {
-    print(json);
+  factory StripePaymentMethod.fromJson(Map json) {
     return StripePaymentMethod(
       id: json["id"],
       object: json["object"],
@@ -37,7 +36,7 @@ class StripePaymentMethod {
       type: json["type"],
     );
   }
-  Map<String, dynamic> toJson() => {
+  Map toJson() => {
         "id": id,
         "object": object,
         "billing_details": billingDetails.toJson(),
@@ -61,14 +60,14 @@ class BillingDetails {
   Address address;
   String? email, name, phone;
 
-  factory BillingDetails.fromJson(Map<String, dynamic> json) => BillingDetails(
+  factory BillingDetails.fromJson(Map json) => BillingDetails(
         address: Address.fromJson(json["address"]),
         email: json["email"],
         name: json["name"],
         phone: json["phone"],
       );
 
-  Map<String, dynamic> toJson() => {
+  Map toJson() => {
         "address": address.toJson(),
         "email": email,
         "name": name,
@@ -88,7 +87,7 @@ class Address {
 
   String? city, country, line1, line2, postalCode, state;
 
-  factory Address.fromJson(Map<String, dynamic> json) => Address(
+  factory Address.fromJson(Map json) => Address(
         city: json["city"],
         country: json["country"],
         line1: json["line1"],
@@ -97,7 +96,7 @@ class Address {
         state: json["state"],
       );
 
-  Map<String, dynamic> toJson() => {
+  Map toJson() => {
         "city": city,
         "country": country,
         "line1": line1,
@@ -128,7 +127,7 @@ class Card {
   String last4;
   Networks networks;
 
-  factory Card.fromJson(Map<String, dynamic> json) => Card(
+  factory Card.fromJson(Map json) => Card(
         brand: json["brand"],
         country: json["country"],
         expMonth: json["exp_month"],
@@ -139,7 +138,7 @@ class Card {
         networks: Networks.fromJson(json["networks"]),
       );
 
-  Map<String, dynamic> toJson() => {
+  Map toJson() => {
         "brand": brand,
         "country": country,
         "exp_month": expMonth,
@@ -160,12 +159,12 @@ class Networks {
   List<String> available;
   String? preferred;
 
-  factory Networks.fromJson(Map<String, dynamic> json) => Networks(
+  factory Networks.fromJson(Map json) => Networks(
         available: List<String>.from(json["available"].map((x) => x)),
         preferred: json["preferred"],
       );
 
-  Map<String, dynamic> toJson() => {
+  Map toJson() => {
         "available": List<dynamic>.from(available.map((x) => x)),
         "preferred": preferred,
       };
@@ -178,12 +177,11 @@ class ThreeDSecureUsage {
 
   bool supported;
 
-  factory ThreeDSecureUsage.fromJson(Map<String, dynamic> json) =>
-      ThreeDSecureUsage(
+  factory ThreeDSecureUsage.fromJson(Map json) => ThreeDSecureUsage(
         supported: json["supported"],
       );
 
-  Map<String, dynamic> toJson() => {
+  Map toJson() => {
         "supported": supported,
       };
 }
