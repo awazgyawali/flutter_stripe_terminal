@@ -3,14 +3,14 @@
 
 A flutter plugin to scan stripe readers and connect to the them and get the payment methods.
 
-## Getting Started
+# Getting Started
 
-### Installation
+## Installation
 
-#### Android
+### Android
 No Configuration needed, workes  out of the box.
 
-#### iOS
+### iOS
 You need to provide permission request strings to your `Info.plist` file. A sample content can be
 
 ```
