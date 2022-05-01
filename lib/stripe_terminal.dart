@@ -1,14 +1,13 @@
 library stripe_terminal;
 
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:math';
 
 import 'package:flutter/services.dart';
-import 'package:stripe_terminal/models/stripe_card.dart';
 
 part "utils/strings.dart";
 part "models/reader.dart";
+part 'models/payment_method.dart';
 
 class StripeTerminal {
   static const MethodChannel _channel = MethodChannel('stripe_terminal');
@@ -44,7 +43,7 @@ class StripeTerminal {
   }) async {
     bool? connected = await _channel.invokeMethod<bool?>("connectToReader", {
       "locationId": locationId,
-      "reader": reader.toJson(),
+      "readerSerialNumber": reader.serialNumber,
     });
     if (connected == null) {
       throw Exception("Unable to connect to the reader");
@@ -55,7 +54,6 @@ class StripeTerminal {
 
   Future<ConnectionStatus> connectionStatus() async {
     int? statusId = await _channel.invokeMethod<int>("connectionStatus");
-    print(statusId);
     if (statusId == null) {
       throw Exception("Unable to get connection status");
     } else {
@@ -72,9 +70,10 @@ class StripeTerminal {
     }
   }
 
-  Future<StripeCard> readCard() async {
-    Map cardDetail = await _channel.invokeMethod("readCardDetail");
-    return StripeCard.fromJson(cardDetail);
+  Future<StripePaymentMethod> readPaymentMethod() async {
+    Map<String, dynamic> cardDetail =
+        await _channel.invokeMethod("readPaymentMethod");
+    return StripePaymentMethod.fromJson(cardDetail);
   }
 
   final StreamController<List<StripeReader>> _readerStreamController =

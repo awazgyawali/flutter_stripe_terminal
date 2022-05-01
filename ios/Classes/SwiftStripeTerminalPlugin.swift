@@ -8,6 +8,7 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
     let stripeAPIClient: StripeAPIClient
     let methodChannel: FlutterMethodChannel
     var discoverCancelable: Cancelable?
+    var readers: [Reader] = []
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "stripe_terminal", binaryMessenger: registrar.messenger())
@@ -35,22 +36,44 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
             
             self.discoverCancelable = Terminal.shared.discoverReaders(config, delegate: self) { error in
                 if let error = error {
-                    result("Unable to discover readers because \(error.localizedDescription)")
+                    result(
+                        FlutterError(
+                            code: "stripeTerminal#unabelToDiscover",
+                            message: "Unable to discover readers because \(error.localizedDescription) ",
+                            details: nil
+                        )
+                    )
                 } else {
-                    result(nil)
+                    result(true)
                 }
             }
             break;
         case "discoverReaders#stop":
-            self.discoverCancelable?.cancel({ error in
-                if let error = error {
-                    result("Unable to stop discovering readers because \(error.localizedDescription)")
-                } else {
-                    result(nil)
-                }
-            })
+            if(self.discoverCancelable == nil){
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#unabelToCancelDiscover",
+                        message: "There is no discover action running to stop.",
+                        details: nil
+                    )
+                )
+            } else {
+                self.discoverCancelable?.cancel({ error in
+                    if let error = error {
+                       result(
+                           FlutterError(
+                               code: "stripeTerminal#unabelToCancelDiscover",
+                               message: "Unable to stop the discover action because \(error.localizedDescription) ",
+                               details: nil
+                           )
+                       )
+                    } else {
+                        result(true)
+                    }
+                })
+            }
+            self.discoverCancelable = nil;
             break;
-            
         case "fetchConnectedReader":
             result(Terminal.shared.connectedReader?.toDict())
             break;
@@ -62,49 +85,115 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
             if(Terminal.shared.connectionStatus == ConnectionStatus.notConnected){
                 let arguments = call.arguments as! Dictionary<String, Any>?
                 
-                let locationId = arguments!["locationId"] as? String?
-                let readerJson = arguments!["reader"] as! Dictionary<String, Any>?
+                let readerSerialNumber = arguments!["readerSerialNumber"] as! String?
                 
-                let reader = Reader.decodedObject(fromJSON: readerJson)
+                let reader = readers.first { reader in
+                    return reader.serialNumber == readerSerialNumber
+                }
+                
+                if(reader == nil) {
+                    result(
+                        FlutterError(
+                            code: "stripeTerminal#readerNotFound",
+                            message: "Reader with provided serial number no longer exists",
+                            details: nil
+                        )
+                    )
+                    return
+                }
+                
+                let locationId = arguments!["locationId"] as? String? ?? reader?.locationId
+                
+                if(locationId == nil) {
+                    result(
+                        FlutterError(
+                            code: "stripeTerminal#locationNotProvided",
+                            message: "Either you have to provide the location id or device should be attached to a location",
+                            details: nil
+                        )
+                    )
+                    return
+                }
                 
                 let connectionConfig = BluetoothConnectionConfiguration(
-                    locationId: locationId ?? reader!.locationId!
+                    locationId: locationId!
                 )
                 
                 Terminal.shared.connectBluetoothReader(reader!, delegate: self, connectionConfig: connectionConfig) { reader, error in
                     if reader != nil {
                         result(true)
                     } else {
-                        result(false)
+                        result(
+                            FlutterError(
+                                code: "stripeTerminal#unableToConnect",
+                                message: error?.localizedDescription,
+                                details: nil
+                            )
+                        )
                     }
                 }
                 
+            } else if(Terminal.shared.connectionStatus == .connecting) {
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#deviceConnecting",
+                        message: "A new connection is being established with a device thus you cannot request a new connection at the moment.",
+                        details: nil
+                    )
+                )
             } else {
-                result(false)
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#deviceAlreadyConnected",
+                        message: "A device with serial number \(Terminal.shared.connectedReader!.serialNumber) is already connected",
+                        details: nil
+                    )
+                )
             }
-            
             break;
-            
-        case "readCardDetail":
-            let params =  ReadReusableCardParameters()
-            
-            Terminal.shared.readReusableCard(params) { paymentMethod, error in
-                if(paymentMethod != nil){
-                    result(paymentMethod?.card?.toDict())
-                } else {
-                    result("Unable to read card detail.")
+        case "readPaymentMethod":
+            if(Terminal.shared.connectedReader == nil){
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#deviceNotConnected",
+                        message: "You must connect to a device before you can use it.",
+                        details: nil
+                    )
+                )
+            } else {
+                let params =  ReadReusableCardParameters()
+                Terminal.shared.readReusableCard(params) { paymentMethod, error in
+                    if(paymentMethod != nil){
+                        result(paymentMethod?.originalJSON)
+                    } else {
+                        result(
+                            FlutterError(
+                                code: "stripeTerminal#unabletToReadCardDetail",
+                                message: "Device was not able to read payment method details.",
+                                details: nil
+                            )
+                        )
+                    }
                 }
             }
             break;
         default:
-            print("Unsupported function called")
+            result(
+                FlutterError(
+                    code: "stripeTerminal#unsupportedFunctionCall",
+                    message: "A method call of name \(call.method) is not supported by the plugin.",
+                    details: nil
+                )
+            )
         }
     }
     
     public func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
+        self.readers = readers;
         let parsedReaders = readers.map { reader -> Dictionary<String, Any> in
             return reader.toDict()
         }
+        
         methodChannel.invokeMethod("onReadersFound", arguments: parsedReaders)
     }
     
@@ -152,6 +241,15 @@ extension Reader{
         dict["locationStatus"] = self.locationStatus.rawValue
         dict["stripeId"] = self.stripeId
         dict["simulated"] = self.simulated
+        return dict;
+    }
+}
+
+extension PaymentMethod {
+    func toDict()->Dictionary<String, Any> {
+        var dict =  Dictionary<String, Any>()
+        dict["card"] = card?.toDict()
+        dict["id"] = stripeId
         return dict;
     }
 }

@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:stripe_terminal/stripe_terminal.dart';
 
 void main() {
@@ -108,7 +107,17 @@ class _MyAppState extends State<MyApp> {
                     },
                     subtitle: Text(describeEnum(e.deviceType)),
                   ),
-                )
+                ),
+              TextButton(
+                child: const Text("Read Card Detail"),
+                onPressed: () async {
+                  stripeTerminal
+                      .readPaymentMethod()
+                      .then((StripePaymentMethod reader) {
+                    print("A card was readed");
+                  });
+                },
+              ),
             ],
           ),
         ),
