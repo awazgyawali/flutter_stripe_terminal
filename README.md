@@ -2,10 +2,6 @@
 [![pub package](https://img.shields.io/pub/v/stripe_terminal.svg)](https://pub.dartlang.org/packages/stripe_terminal)
 
 A flutter plugin to scan stripe readers and connect to the them and get the payment methods.
-
-
-
-
 # Installation
 
 ## Android
@@ -23,18 +19,12 @@ You need to provide permission request strings to your `Info.plist` file. A samp
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>This app uses Bluetooth to connect to supported card readers.</string>
 ```
-
-
 You also need to authorize backround modes authorization for `bluetooth-central`. Paste the following to your `Info.plist` file
 ```
 	<array>
 		<string>bluetooth-central</string>
 	</array>
 ```
-
-
-
-
 
 # Usage
 
@@ -104,10 +94,6 @@ You also need to authorize backround modes authorization for `bluetooth-central`
 
 And you are done!!!!
 
-
-
-
-
 # Currently supported features:
 - Initializing terminal SDK
 - Scanning the readers
@@ -115,31 +101,18 @@ And you are done!!!!
 - Checking connection status
 - Checking connected device
 - Read payment method from the device
-
-
-
-
 # Missing Features
 - Create payment intent
 - Process payment
 - Capture payment
-
-
-
-
 
 # Future Plan
 Please feel free to send a PR for further feature as you need or just create an issue on the repo with the feature request. 
 
 I have no plans to maintain this package in the long future thus the package will be deprecated as soon as [flutter_stripe](https://pub.dev/packages/flutter_stripe) adds support to their SDK as mentioned [here](https://github.com/flutter-stripe/flutter_stripe/issues/39#issuecomment-1084191165) 
 
-
-
-
-
 # Support the creator
 Creating software for free takes time and effort thus please consider buying me a cup of coffee. This we definitely put a smile on my face and motivate me to contribute more.
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/aawaz)
-
 [:heart: Sponsor](https://github.com/sponsors/awazgyawali)
