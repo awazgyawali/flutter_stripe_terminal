@@ -101,11 +101,18 @@ You also need to authorize backround modes authorization for `bluetooth-central`
 And you are done!!!!
 
 
+### Currently supported features:
+- Initializing terminal SDK
+- Scanning the readers
+- Connecting to a device (Only bluetooth devices on android)
+- Checking connection status
+- Checking connected device
+- Read payment method from the device
+
 ### Missing Features
 - Create payment intent
 - Process payment
 - Capture payment
-
 
 
 ### Future Plan
