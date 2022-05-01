@@ -1,5 +1,6 @@
 # stripe_terminal
 [![pub package](https://img.shields.io/pub/v/flutter_local_notifications.svg)](https://pub.dartlang.org/packages/stripe_terminal)
+
 A flutter plugin to scan stripe readers and connect to the them and get the payment methods.
 
 ## Getting Started
