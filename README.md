@@ -33,7 +33,7 @@ You also need to authorize backround modes authorization for `bluetooth-central`
 
 ### Usage
 
-- First initilize the SDK
+- **First initilize the SDK**
 ```
     stripeTerminal = StripeTerminal(
       fetchToken: () async {
@@ -46,7 +46,30 @@ You also need to authorize backround modes authorization for `bluetooth-central`
     );
 ```
 
-- Discover the devices nearby and show it to the user
+- Example backend code to get the connection token written on node.js:
+```
+    import Stripe from "stripe";
+    import express from "express"
+
+    const stripe = new Stripe("sk_test_XXXXXXXXXXXXXXXXXX", {
+        apiVersion: "2020-08-27"
+    })
+
+    const app = express();
+
+    app.get("/connectionToken", async (req, res) => {
+        const token = await stripe.terminal.connectionTokens.create();
+        res.send({
+            success: true,
+            data: token.secret
+        });
+    });
+    app.listen(8000, () => {
+        console.log("Server started")
+    });
+```
+
+- **Discover the devices nearby and show it to the user**
 ```
     stripeTerminal
         .discoverReaders(simulated: true)
@@ -57,7 +80,7 @@ You also need to authorize backround modes authorization for `bluetooth-central`
         });
 ```
 
-- Connect to a reader
+- **Connect to a reader**
 ```
     bool connected = await stripeTerminal.connectToReader(readers[0]);
     if(connected) {
@@ -65,7 +88,7 @@ You also need to authorize backround modes authorization for `bluetooth-central`
     }
 ``` 
 
-- Scan a card from the reader
+- **Scan a card from the reader**
 ```
     stripeTerminal
         .readPaymentMethod()
