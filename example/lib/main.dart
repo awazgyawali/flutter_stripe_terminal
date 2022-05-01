@@ -117,7 +117,7 @@ class _MyAppState extends State<MyApp> {
                 onPressed: () async {
                   stripeTerminal
                       .readPaymentMethod()
-                      .then((StripePaymentMethod reader) {
+                      .then((StripePaymentMethod paymentMethod) {
                     print("A card was readed");
                   });
                 },
