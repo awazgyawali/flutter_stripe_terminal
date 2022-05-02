@@ -6,7 +6,9 @@ import 'dart:async';
 import 'package:stripe_terminal/stripe_terminal.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    const MaterialApp(home: MyApp()),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -19,7 +21,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: "http://192.168.1.102:8080/",
+      baseUrl: "http://localhost:8080/",
     ),
   );
 
@@ -47,86 +49,84 @@ class _MyAppState extends State<MyApp> {
   List<StripeReader>? readers;
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Center(
-          child: Column(
-            children: [
-              TextButton(
-                child: const Text("Init Stripe"),
-                onPressed: () async {
-                  stripeTerminal = StripeTerminal(
-                    fetchToken: getConnectionString,
-                  );
-                },
-              ),
-              TextButton(
-                child: const Text("Get Connection Token"),
-                onPressed: () async {
-                  String connectionToken = await getConnectionString();
-                  print(connectionToken);
-                },
-              ),
-              TextButton(
-                child: const Text("Scan Devices"),
-                onPressed: () async {
-                  stripeTerminal
-                      .discoverReaders(simulated: true)
-                      .listen((readers) {
-                    setState(() {
-                      this.readers = readers;
-                    });
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Plugin example app'),
+      ),
+      body: Center(
+        child: Column(
+          children: [
+            TextButton(
+              child: const Text("Init Stripe"),
+              onPressed: () async {
+                stripeTerminal = StripeTerminal(
+                  fetchToken: getConnectionString,
+                );
+              },
+            ),
+            TextButton(
+              child: const Text("Get Connection Token"),
+              onPressed: () async {
+                String connectionToken = await getConnectionString();
+                _showSnackbar(connectionToken);
+              },
+            ),
+            TextButton(
+              child: const Text("Scan Devices"),
+              onPressed: () async {
+                stripeTerminal
+                    .discoverReaders(simulated: true)
+                    .listen((readers) {
+                  setState(() {
+                    this.readers = readers;
                   });
-                },
-              ),
-              TextButton(
-                child: const Text("Connection Status"),
-                onPressed: () async {
-                  stripeTerminal.connectionStatus().then((status) {
-                    _showSnackbar("Connection status: ${status.toString()}");
-                  });
-                },
-              ),
-              TextButton(
-                child: const Text("Connected Device"),
-                onPressed: () async {
-                  stripeTerminal
-                      .fetchConnectedReader()
-                      .then((StripeReader? reader) {
-                    _showSnackbar("Connection Device: ${reader?.toJson()}");
-                  });
-                },
-              ),
-              if (readers != null)
-                ...readers!.map(
-                  (e) => ListTile(
-                    title: Text(e.serialNumber),
-                    trailing: Text(describeEnum(e.batteryStatus)),
-                    leading: Text(e.locationId),
-                    onTap: () async {
-                      await stripeTerminal.connectToReader(e);
-                      _showSnackbar("Connected to a device");
-                    },
-                    subtitle: Text(describeEnum(e.deviceType)),
-                  ),
+                });
+              },
+            ),
+            TextButton(
+              child: const Text("Connection Status"),
+              onPressed: () async {
+                stripeTerminal.connectionStatus().then((status) {
+                  _showSnackbar("Connection status: ${status.toString()}");
+                });
+              },
+            ),
+            TextButton(
+              child: const Text("Connected Device"),
+              onPressed: () async {
+                stripeTerminal
+                    .fetchConnectedReader()
+                    .then((StripeReader? reader) {
+                  _showSnackbar("Connection Device: ${reader?.toJson()}");
+                });
+              },
+            ),
+            if (readers != null)
+              ...readers!.map(
+                (e) => ListTile(
+                  title: Text(e.serialNumber),
+                  trailing: Text(describeEnum(e.batteryStatus)),
+                  leading: Text(e.locationId),
+                  onTap: () async {
+                    await stripeTerminal.connectToReader(e);
+                    _showSnackbar("Connected to a device");
+                  },
+                  subtitle: Text(describeEnum(e.deviceType)),
                 ),
-              TextButton(
-                child: const Text("Read Card Detail"),
-                onPressed: () async {
-                  stripeTerminal
-                      .readPaymentMethod()
-                      .then((StripePaymentMethod paymentMethod) {
-                    _showSnackbar(
-                      "A card was read: ${paymentMethod.card?.toJson()}",
-                    );
-                  });
-                },
               ),
-            ],
-          ),
+            TextButton(
+              child: const Text("Read Card Detail"),
+              onPressed: () async {
+                stripeTerminal
+                    .readPaymentMethod()
+                    .then((StripePaymentMethod paymentMethod) {
+                  _showSnackbar(
+                    "A card was read: ${paymentMethod.card?.toJson()}",
+                  );
+                });
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -136,7 +136,11 @@ class _MyAppState extends State<MyApp> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(message),
+        backgroundColor: Colors.red,
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.red),
+        ),
       ),
     );
   }
