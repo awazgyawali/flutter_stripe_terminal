@@ -86,7 +86,7 @@ class _MyAppState extends State<MyApp> {
                 child: const Text("Connection Status"),
                 onPressed: () async {
                   stripeTerminal.connectionStatus().then((status) {
-                    print("Connection status: ${status.toString()}");
+                    _showSnackbar("Connection status: ${status.toString()}");
                   });
                 },
               ),
@@ -96,7 +96,7 @@ class _MyAppState extends State<MyApp> {
                   stripeTerminal
                       .fetchConnectedReader()
                       .then((StripeReader? reader) {
-                    print("Connection Device: ${reader?.toJson()}");
+                    _showSnackbar("Connection Device: ${reader?.toJson()}");
                   });
                 },
               ),
@@ -107,7 +107,8 @@ class _MyAppState extends State<MyApp> {
                     trailing: Text(describeEnum(e.batteryStatus)),
                     leading: Text(e.locationId),
                     onTap: () async {
-                      bool connected = await stripeTerminal.connectToReader(e);
+                      await stripeTerminal.connectToReader(e);
+                      _showSnackbar("Connected to a device");
                     },
                     subtitle: Text(describeEnum(e.deviceType)),
                   ),
@@ -118,13 +119,23 @@ class _MyAppState extends State<MyApp> {
                   stripeTerminal
                       .readPaymentMethod()
                       .then((StripePaymentMethod paymentMethod) {
-                    print("A card was readed");
+                    _showSnackbar(
+                      "A card was read: ${paymentMethod.card?.toJson()}",
+                    );
                   });
                 },
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
       ),
     );
   }
