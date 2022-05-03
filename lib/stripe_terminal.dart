@@ -40,12 +40,12 @@ class StripeTerminal {
   ///
   /// Always run `discoverReaders` before calling this function
   Future<bool> connectToReader(
-    StripeReader reader, {
+    String readerSerialNumber, {
     String? locationId,
   }) async {
     bool? connected = await _channel.invokeMethod<bool?>("connectToReader", {
       "locationId": locationId,
-      "readerSerialNumber": reader.serialNumber,
+      "readerSerialNumber": readerSerialNumber,
     });
     if (connected == null) {
       throw Exception("Unable to connect to the reader");
@@ -80,7 +80,7 @@ class StripeTerminal {
     return StripePaymentMethod.fromJson(cardDetail);
   }
 
-  final StreamController<List<StripeReader>> _readerStreamController =
+  StreamController<List<StripeReader>> _readerStreamController =
       StreamController<List<StripeReader>>();
 
   /// Starts scanning readers in the vicinity. This will return a list of readers.
@@ -97,6 +97,7 @@ class StripeTerminal {
     _readerStreamController.onCancel = () {
       _channel.invokeMethod("discoverReaders#stop");
       _readerStreamController.close();
+      _readerStreamController = StreamController<List<StripeReader>>();
     };
     return _readerStreamController.stream;
   }

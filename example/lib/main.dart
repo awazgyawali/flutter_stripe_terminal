@@ -108,7 +108,7 @@ class _MyAppState extends State<MyApp> {
                   trailing: Text(describeEnum(e.batteryStatus)),
                   leading: Text(e.locationId),
                   onTap: () async {
-                    await stripeTerminal.connectToReader(e);
+                    await stripeTerminal.connectToReader(e.serialNumber);
                     _showSnackbar("Connected to a device");
                   },
                   subtitle: Text(describeEnum(e.deviceType)),

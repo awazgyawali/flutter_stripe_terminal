@@ -77,7 +77,7 @@ You also need to authorize backround modes authorization for `bluetooth-central`
 
 - **Connect to a reader**
 ```
-    bool connected = await stripeTerminal.connectToReader(readers[0]);
+    bool connected = await stripeTerminal.connectToReader(readers[0].serialNumber);
     if(connected) {
         print("Connected to a device");
     }
