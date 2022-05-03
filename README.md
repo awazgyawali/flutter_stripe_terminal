@@ -13,7 +13,6 @@ You need to provide permission request strings to your `Info.plist` file. A samp
 ```
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location access is required in order to accept payments.</string>
-	<key>UIBackgroundModes</key>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Bluetooth access is required in order to connect to supported bluetooth card readers.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
@@ -21,6 +20,7 @@ You need to provide permission request strings to your `Info.plist` file. A samp
 ```
 You also need to authorize backround modes authorization for `bluetooth-central`. Paste the following to your `Info.plist` file
 ```
+	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>
 	</array>
