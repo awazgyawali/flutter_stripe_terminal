@@ -20,12 +20,15 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
     public init(channel: FlutterMethodChannel) {
         self.methodChannel = channel
         stripeAPIClient = StripeAPIClient(methodChannel: channel)
+        Terminal.initialize()
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "init":
-            Terminal.setTokenProvider(stripeAPIClient)
+            if(!Terminal.hasTokenProvider()){
+                Terminal.setTokenProvider(stripeAPIClient)
+            }
             result(nil)
             break;
         case "discoverReaders#start":
@@ -62,13 +65,13 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
             } else {
                 self.discoverCancelable?.cancel({ error in
                     if let error = error {
-                       result(
-                           FlutterError(
-                               code: "stripeTerminal#unabelToCancelDiscover",
-                               message: "Unable to stop the discover action because \(error.localizedDescription) ",
-                               details: nil
-                           )
-                       )
+                        result(
+                            FlutterError(
+                                code: "stripeTerminal#unabelToCancelDiscover",
+                                message: "Unable to stop the discover action because \(error.localizedDescription) ",
+                                details: nil
+                            )
+                        )
                     } else {
                         result(true)
                     }

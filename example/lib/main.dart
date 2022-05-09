@@ -44,6 +44,11 @@ class _MyAppState extends State<MyApp> {
     stripeTerminal = StripeTerminal(
       fetchToken: getConnectionString,
     );
+    stripeTerminal.discoverReaders(simulated: true).listen((readers) {
+      setState(() {
+        this.readers = readers;
+      });
+    });
   }
 
   List<StripeReader>? readers;

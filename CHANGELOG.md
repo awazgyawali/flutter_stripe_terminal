@@ -1,3 +1,6 @@
+## 1.0.0+4
+
+Fixed Initilization Issue
 ## 1.0.0+3
 
 Fixed Stream issue
