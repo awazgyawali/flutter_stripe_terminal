@@ -101,4 +101,19 @@ class StripeTerminal {
     };
     return _readerStreamController.stream;
   }
+
+  /// Starts the whole payment process.
+  /// Sends a request to the connected Stripe card reader to swipe card
+  Future<Map?> startPaymentProcess(String amount) async {
+    Map? response = await _channel.invokeMethod<Map>("startPayment", {
+      "amount": amount,
+    });
+    if (response != null &&
+        response['isSuccess'] != null &&
+        response['isSuccess']) {
+      return response;
+    } else {
+      throw Exception("Unable to connect to the reader");
+    }
+  }
 }

@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -257,9 +258,116 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     })
                 }
             }
+            "startPayment" -> {
+                when (Terminal.getInstance().connectionStatus) {
+                    ConnectionStatus.CONNECTED -> {
+                        Log.d("StripePayment", "[Stripe Payment] startPayment Start processCardReaderPayment process")
+                        val arguments = call.arguments as HashMap<*, *>
+                        val amountText = arguments["amount"] as String
+                        val amount = amountText.toInt()
+                        // Start payment process
+                        startPayment(amount, result)
+
+                    }
+                    ConnectionStatus.CONNECTING -> {
+                        Log.d("StripePayment", "[Stripe Payment] startPayment ConnectionStatus.CONNECTING")
+                        result.error(
+                            "stripeTerminal#deviceConnecting",
+                            "Card reader connecting...",
+                            null
+                        )
+                    }
+                    ConnectionStatus.NOT_CONNECTED -> {
+                        Log.d("StripePayment", "[Stripe Payment] startPayment ConnectionStatus.NOT_CONNECTED")
+                        result.error(
+                            "stripeTerminal#deviceAlreadyConnected",
+                            "Card reader not selected.",
+                            null
+                        )
+                    }
+                }
+            }
             else -> result.notImplemented()
         }
 
+    }
+
+    private fun startPayment(amount: Int, resultCallback: Result) {
+        val params = PaymentIntentParameters.Builder(listOf(PaymentMethodType.CARD_PRESENT))
+            .setAmount(amount.toLong())
+            .setCurrency("usd")
+            .build()
+
+        result = resultCallback
+
+        Log.d("StripePayment", "[Stripe Payment] PaymentIntentParameters.Builder amount: $amount $params")
+
+        // Step 1: create payment intent
+        Terminal.getInstance().createPaymentIntent(params, createPaymentIntentCallback)
+    }
+
+    // Step 2 - once we've created the payment intent, it's time to read the card
+    private val createPaymentIntentCallback by lazy {
+        object : PaymentIntentCallback {
+            override fun onSuccess(paymentIntent: PaymentIntent) {
+                Log.d("StripePayment", "[Stripe Payment] Created Payment Intent successfully!!!")
+                Terminal.getInstance()
+                    .collectPaymentMethod(paymentIntent, collectPaymentMethodCallback)
+            }
+
+            override fun onFailure(e: TerminalException) {
+                // Update UI w/ failure
+                Log.d("StripePayment", "[Stripe Payment] Collect Payment Unsuccessful! " + e)
+                result?.error(
+                    "stripeTerminal#createPaymentIntentCallbackFailure",
+                    "createPaymentIntentCallback failed with error $e",
+                    null
+                )
+            }
+        }
+    }
+
+    // Step 3 - we've collected the payment method, so it's time to process the payment
+    private val collectPaymentMethodCallback by lazy {
+        object : PaymentIntentCallback {
+            override fun onSuccess(paymentIntent: PaymentIntent) {
+                Log.d("StripePayment", "[Stripe Payment] Collected Payment successfully!!!")
+                Terminal.getInstance().processPayment(paymentIntent, processPaymentCallback)
+            }
+
+            override fun onFailure(e: TerminalException) {
+                // Update UI w/ failure
+                Log.d("StripePayment", "[Stripe Payment] Collect Payment Unsuccessful! " + e)
+                result?.error(
+                    "stripeTerminal#collectPaymentMethodCallbackFailure",
+                    "collectPaymentMethodCallback failed with error $e",
+                    null
+                )
+            }
+        }
+    }
+
+    // Step 4 - we've processed the payment! Show a success screen
+    private val processPaymentCallback by lazy {
+        object : PaymentIntentCallback {
+            override fun onSuccess(paymentIntent: PaymentIntent) {
+                Log.d("StripePayment", "[Stripe Payment] Payment Processed successfully!")
+
+                val response = paymentIntentToJson(paymentIntent)
+
+                result?.success(response)
+            }
+
+            override fun onFailure(e: TerminalException) {
+                // Update UI w/ failure
+                Log.d("StripePayment", "[Stripe Payment] Payment Process Unsuccessful! " + e)
+                result?.error(
+                    "stripeTerminal#processPaymentCallbackFailure",
+                    "processPaymentCallback failed with error $e",
+                    null
+                )
+            }
+        }
     }
 
     var result: Result? = null
@@ -404,6 +512,28 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     }
 
 
+}
+
+fun paymentIntentToJson(paymentIntent: PaymentIntent): HashMap<String, Any?> {
+    val json = HashMap<String, Any?>()
+
+    json["isSuccess"] = true
+    json["paymentIntentId"] = paymentIntent.id
+    json["amount"] = paymentIntent.amount
+    json["amountReceived"] = paymentIntent.amountReceived
+    json["amountCapturable"] = paymentIntent.amountCapturable
+    json["captureMethod"] = paymentIntent.captureMethod
+    json["currency"] = paymentIntent.currency
+    json["description"] = paymentIntent.description
+    json["clientSecret"] = paymentIntent.clientSecret
+    json["confirmationMethod"] = paymentIntent.confirmationMethod
+    json["invoice"] = paymentIntent.invoice
+    json["metadata"] = paymentIntent.metadata
+    json["paymentChargeId"] = paymentIntent.getCharges().firstOrNull()?.id
+    json["last4"] = paymentIntent.getCharges().firstOrNull()?.paymentMethodDetails?.cardPresentDetails?.last4
+    json["brand"] = paymentIntent.getCharges().firstOrNull()?.paymentMethodDetails?.cardPresentDetails?.brand
+
+    return json
 }
 
 
