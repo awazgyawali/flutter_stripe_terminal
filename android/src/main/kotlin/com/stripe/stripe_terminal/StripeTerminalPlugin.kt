@@ -264,7 +264,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         Log.d("StripePayment", "[Stripe Payment] startPayment Start processCardReaderPayment process")
                         val arguments = call.arguments as HashMap<*, *>
                         val amountText = arguments["amount"] as String
-                        val amount = amountText.toInt()
+                        val amount = amountText.toLong()
                         // Start payment process
                         startPayment(amount, result)
 
@@ -292,9 +292,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
     }
 
-    private fun startPayment(amount: Int, resultCallback: Result) {
+    private fun startPayment(amount: Long, resultCallback: Result) {
         val params = PaymentIntentParameters.Builder(listOf(PaymentMethodType.CARD_PRESENT))
-            .setAmount(amount.toLong())
+            .setAmount(amount)
             .setCurrency("usd")
             .build()
 
