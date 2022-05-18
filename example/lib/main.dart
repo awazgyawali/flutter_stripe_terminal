@@ -21,7 +21,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: "http://localhost:8080/",
+      baseUrl: "http://34.209.150.202:8080/",
     ),
   );
 
@@ -44,12 +44,14 @@ class _MyAppState extends State<MyApp> {
     stripeTerminal = StripeTerminal(
       fetchToken: getConnectionString,
     );
-    stripeTerminal.discoverReaders(simulated: true).listen((readers) {
+    stripeTerminal.discoverReaders(simulated: simulated).listen((readers) {
       setState(() {
         this.readers = readers;
       });
     });
   }
+
+  bool simulated = false;
 
   List<StripeReader>? readers;
   @override
@@ -61,6 +63,16 @@ class _MyAppState extends State<MyApp> {
       body: Center(
         child: Column(
           children: [
+            CheckboxListTile(
+              value: simulated,
+              onChanged: (v) {
+                setState(() {
+                  simulated = v ?? false;
+                });
+              },
+              title: const Text("Scanning mode"),
+              subtitle: Text(simulated ? "Simulator" : "Real"),
+            ),
             TextButton(
               child: const Text("Init Stripe"),
               onPressed: () async {
