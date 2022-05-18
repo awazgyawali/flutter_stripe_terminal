@@ -54,6 +54,17 @@ class StripeTerminal {
     }
   }
 
+  /// Disconnects from a connected card reader
+  Future<bool> disconnectReader() async {
+    bool? isDisconnected =
+        await _channel.invokeMethod<bool?>("disconnectReader");
+    if (isDisconnected != null && isDisconnected) {
+      return isDisconnected;
+    } else {
+      throw Exception("Unable to disconnect from Card Reader");
+    }
+  }
+
   /// Checks the connection status of the SDK
   Future<ConnectionStatus> connectionStatus() async {
     int? statusId = await _channel.invokeMethod<int>("connectionStatus");

@@ -159,6 +159,42 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             "connectionStatus" -> {
                 result.success(handleConnectionStatus(Terminal.getInstance().connectionStatus))
             }
+            "disconnectReader" -> {
+                when (Terminal.getInstance().connectionStatus) {
+                    ConnectionStatus.CONNECTED -> {
+
+                        Terminal.getInstance().disconnectReader(
+                            object : Callback {
+                                override fun onFailure(e: TerminalException) {
+                                    result.error(
+                                        "stripeTerminal#unableToDisconnect",
+                                        e.errorMessage,
+                                        e.stackTraceToString()
+                                    )
+                                }
+
+                                override fun onSuccess() {
+                                    result.success(true)
+                                }
+
+                            })
+                    }
+                    ConnectionStatus.CONNECTING -> {
+                        result.error(
+                            "stripeTerminal#deviceConnecting",
+                            "A new connection is being established with a device thus you cannot request to disconnect at the moment.",
+                            null
+                        )
+                    }
+                    ConnectionStatus.NOT_CONNECTED -> {
+                        result.error(
+                            "stripeTerminal#noDeviceConnected",
+                            "There is currently no device connected",
+                            null
+                        )
+                    }
+                }
+            }
             "connectToReader" -> {
                 when (Terminal.getInstance().connectionStatus) {
                     ConnectionStatus.NOT_CONNECTED -> {
@@ -321,7 +357,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                 result?.error(
                     "stripeTerminal#createPaymentIntentCallbackFailure",
                     "createPaymentIntentCallback failed with error $e",
-                    null
+                    e.stackTraceToString()
                 )
             }
         }
@@ -341,7 +377,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                 result?.error(
                     "stripeTerminal#collectPaymentMethodCallbackFailure",
                     "collectPaymentMethodCallback failed with error $e",
-                    null
+                    e.stackTraceToString()
                 )
             }
         }
@@ -364,7 +400,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                 result?.error(
                     "stripeTerminal#processPaymentCallbackFailure",
                     "processPaymentCallback failed with error $e",
-                    null
+                    e.stackTraceToString()
                 )
             }
         }
