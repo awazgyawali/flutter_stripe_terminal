@@ -1,11 +1,11 @@
 name: stripe_terminal
 description: A flutter plugin to scan stripe readers and connect to the them and get the payment methods.
-version: 1.0.0+4
+version: 1.1.0
 homepage: https://github.com/awazgyawali/flutter_stripe_terminal
 
 environment:
   sdk: ">=2.16.2 <3.0.0"
-  flutter: ">=2.5.0"
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:

@@ -294,11 +294,10 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
         return false
     }
 
-
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissionResults: Array<out String>?,
-        grantResults: IntArray?
+        permissions: Array<out String>,
+        grantResults: IntArray
     ): Boolean {
         val permissionStatus = permissions.map {
             ContextCompat.checkSelfPermission(currentActivity!!, it)

@@ -16,6 +16,7 @@ class StripeTokenProvider(val activity: Activity, val methodChannel: MethodChann
                 methodChannel.invokeMethod(
                     "requestConnectionToken",
                     null,
+
                     object : MethodChannel.Result {
                         override fun success(result: Any?) {
                             val token = result as String
@@ -23,7 +24,7 @@ class StripeTokenProvider(val activity: Activity, val methodChannel: MethodChann
                         }
 
                         override fun error(
-                            errorCode: String?,
+                            errorCode: String,
                             errorMessage: String?,
                             errorDetails: Any?
                         ) {
