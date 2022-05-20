@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 import 'package:stripe_terminal/stripe_terminal.dart';
@@ -21,13 +22,16 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final Dio _dio = Dio(
     BaseOptions(
+      // TODO: THIS URL does not work
       baseUrl: "http://34.209.150.202:8080/",
     ),
   );
 
   Future<String> getConnectionString() async {
     // get api call using _dio to get connection token
-    Response response = await _dio.get("/connectionToken");
+    Response response = await _dio.get("/connectionToken", queryParameters: {
+      "simulated": simulated,
+    });
     if (!response.data["success"]) {
       throw Exception(
         "Failed to get connection token because ${response.data["message"]}",
@@ -37,22 +41,36 @@ class _MyAppState extends State<MyApp> {
     return response.data["data"];
   }
 
+  Future<void> _pushLogs(StripeLog log) async {
+    debugPrint(log.code);
+    debugPrint(log.message);
+  }
+
+  Future<String> createPaymentIntent() async {
+    Response invoice = await _dio.post(
+      "/createPaymentIntent",
+      queryParameters: {"simulated": simulated},
+    );
+    return invoice.data["paymentIntent"]["client_secret"];
+  }
+
   late StripeTerminal stripeTerminal;
   @override
   void initState() {
     super.initState();
+    _initStripe();
+  }
+
+  _initStripe() {
     stripeTerminal = StripeTerminal(
       fetchToken: getConnectionString,
     );
-    stripeTerminal.discoverReaders(simulated: simulated).listen((readers) {
-      setState(() {
-        this.readers = readers;
-      });
-    });
+    stripeTerminal.onNativeLogs.listen(_pushLogs);
   }
 
-  bool simulated = false;
+  bool simulated = true;
 
+  StreamSubscription? _sub;
   List<StripeReader>? readers;
   @override
   Widget build(BuildContext context) {
@@ -63,22 +81,20 @@ class _MyAppState extends State<MyApp> {
       body: Center(
         child: Column(
           children: [
-            CheckboxListTile(
-              value: simulated,
-              onChanged: (v) {
+            ListTile(
+              onTap: () {
                 setState(() {
-                  simulated = v ?? false;
+                  simulated = !simulated;
+                  _initStripe();
                 });
               },
               title: const Text("Scanning mode"),
-              subtitle: Text(simulated ? "Simulator" : "Real"),
+              trailing: Text(simulated ? "Simulator" : "Real"),
             ),
             TextButton(
               child: const Text("Init Stripe"),
               onPressed: () async {
-                stripeTerminal = StripeTerminal(
-                  fetchToken: getConnectionString,
-                );
+                _initStripe();
               },
             ),
             TextButton(
@@ -88,18 +104,32 @@ class _MyAppState extends State<MyApp> {
                 _showSnackbar(connectionToken);
               },
             ),
-            TextButton(
-              child: const Text("Scan Devices"),
-              onPressed: () async {
-                stripeTerminal
-                    .discoverReaders(simulated: true)
-                    .listen((readers) {
+            if (_sub == null)
+              TextButton(
+                child: const Text("Scan Devices"),
+                onPressed: () async {
                   setState(() {
-                    this.readers = readers;
+                    readers = [];
                   });
-                });
-              },
-            ),
+                  _sub = stripeTerminal
+                      .discoverReaders(simulated: simulated)
+                      .listen((readers) {
+                    setState(() {
+                      this.readers = readers;
+                    });
+                  });
+                },
+              ),
+            if (_sub != null)
+              TextButton(
+                child: const Text("Stop Scanning"),
+                onPressed: () async {
+                  setState(() {
+                    _sub?.cancel();
+                    _sub = null;
+                  });
+                },
+              ),
             TextButton(
               child: const Text("Connection Status"),
               onPressed: () async {
@@ -123,24 +153,62 @@ class _MyAppState extends State<MyApp> {
                 (e) => ListTile(
                   title: Text(e.serialNumber),
                   trailing: Text(describeEnum(e.batteryStatus)),
-                  leading: Text(e.locationId),
+                  leading: Text(e.locationId ?? "No Location Id"),
                   onTap: () async {
-                    await stripeTerminal.connectToReader(e.serialNumber);
-                    _showSnackbar("Connected to a device");
+                    await stripeTerminal
+                        .connectToReader(
+                      e.serialNumber,
+                      locationId: "tml_EoMcZwfY6g8btZ",
+                    )
+                        .then((value) {
+                      _showSnackbar("Connected to a device");
+                    }).catchError((e) {
+                      if (e is PlatformException) {
+                        _showSnackbar(e.message ?? e.code);
+                      }
+                    });
                   },
                   subtitle: Text(describeEnum(e.deviceType)),
                 ),
               ),
             TextButton(
-              child: const Text("Read Card Detail"),
+              child: const Text("Read Reusable Card Detail"),
               onPressed: () async {
                 stripeTerminal
-                    .readPaymentMethod()
+                    .readReusableCardDetail()
                     .then((StripePaymentMethod paymentMethod) {
                   _showSnackbar(
                     "A card was read: ${paymentMethod.card?.toJson()}",
                   );
                 });
+              },
+            ),
+            TextButton(
+              child: const Text("Capture Payment"),
+              onPressed: () async {
+                String paymentIntent = await createPaymentIntent();
+                stripeTerminal
+                    .collectPaymentMethod(paymentIntent)
+                    .then((StripePaymentIntent paymentMethod) {
+                  _showSnackbar(
+                    "A payment method was captured",
+                  );
+                });
+              },
+            ),
+            TextButton(
+              child: const Text("Misc Button"),
+              onPressed: () async {
+                StripeReader.fromJson(
+                  {
+                    "locationStatus": 2,
+                    "deviceType": 3,
+                    "serialNumber": "STRM26138003393",
+                    "batteryStatus": 0,
+                    "simulated": false,
+                    "availableUpdate": false
+                  },
+                );
               },
             ),
           ],
@@ -153,7 +221,6 @@ class _MyAppState extends State<MyApp> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.red,
         content: Text(
           message,
           style: const TextStyle(color: Colors.red),

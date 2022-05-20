@@ -6,7 +6,9 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 
 part "utils/strings.dart";
+part "models/log.dart";
 part "models/reader.dart";
+part "models/payment_intent.dart";
 part 'models/payment_method.dart';
 
 class StripeTerminal {
@@ -23,6 +25,12 @@ class StripeTerminal {
       switch (call.method) {
         case "requestConnectionToken":
           return fetchToken();
+        case "onNativeLog":
+          _logsStreamController.add(StripeLog(
+            code: call.arguments["code"] as String,
+            message: call.arguments["message"] as String,
+          ));
+          break;
         case "onReadersFound":
           List readers = call.arguments;
           _readerStreamController.add(
@@ -35,6 +43,13 @@ class StripeTerminal {
     });
     _channel.invokeMethod("init");
   }
+
+  final StreamController<StripeLog> _logsStreamController =
+      StreamController<StripeLog>();
+
+  /// Gives you the native logs of this plugin. If some features are not working for you,
+  /// you can listen to the native logs to understand whats going wrong.
+  Stream<StripeLog> get onNativeLogs => _logsStreamController.stream;
 
   /// Connects to a reader, only works if you have scanned devices within this session.
   ///
@@ -75,13 +90,12 @@ class StripeTerminal {
   }
 
   /// Extracts payment method from the reader
-  Future<StripePaymentMethod> readPaymentMethod() async {
-    Map cardDetail = await _channel.invokeMethod("readPaymentMethod");
+  Future<StripePaymentMethod> readReusableCardDetail() async {
+    Map cardDetail = await _channel.invokeMethod("readReusableCardDetail");
     return StripePaymentMethod.fromJson(cardDetail);
   }
 
-  StreamController<List<StripeReader>> _readerStreamController =
-      StreamController<List<StripeReader>>();
+  late StreamController<List<StripeReader>> _readerStreamController;
 
   /// Starts scanning readers in the vicinity. This will return a list of readers.
   ///
@@ -91,14 +105,30 @@ class StripeTerminal {
   Stream<List<StripeReader>> discoverReaders({
     bool simulated = false,
   }) {
+    _readerStreamController = StreamController<List<StripeReader>>();
+
     _channel.invokeMethod("discoverReaders#start", {
       "simulated": simulated,
     });
     _readerStreamController.onCancel = () {
       _channel.invokeMethod("discoverReaders#stop");
       _readerStreamController.close();
-      _readerStreamController = StreamController<List<StripeReader>>();
     };
     return _readerStreamController.stream;
+  }
+
+  /// Starts reading payment method based on payment intent.
+  ///
+  /// Payment intent is supposed to be generated on your backend and the `clientSecret` of the payment intent
+  /// should be passed to this function.
+  ///
+  /// Once passed, the payment intent will be fetched and the payment method is captures. A sucessful function call
+  /// should return an instance of `StripePaymentIntent` with status `requiresCapture`;
+  Future<StripePaymentIntent> collectPaymentMethod(String clientSecret) async {
+    Map paymentIntent = await _channel.invokeMethod("collectPaymentMethod", {
+      "paymentIntentClientSecret": clientSecret,
+    });
+
+    return StripePaymentIntent.fromMap(paymentIntent);
   }
 }

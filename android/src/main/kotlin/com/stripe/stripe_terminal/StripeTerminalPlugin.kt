@@ -10,6 +10,7 @@ import android.os.Bundle
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.gson.Gson
 import com.stripe.stripeterminal.Terminal
 import com.stripe.stripeterminal.TerminalApplicationDelegate
 import com.stripe.stripeterminal.external.callable.*
@@ -35,7 +36,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     private lateinit var tokenProvider: StripeTokenProvider
     private var cancelableDiscover: Cancelable? = null
     private var activeReaders: List<Reader> = arrayListOf()
-    private  var simulated = false
+    private var simulated = false
     private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -83,6 +84,13 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
     }
 
+    private fun generateLog(code: String, message: String) {
+        val log: HashMap<String, String> = HashMap()
+        log["code"] = code
+        log["message"] = message
+        channel.invokeMethod("onNativeLog", log)
+    }
+
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
         when (call.method) {
             "init" -> {
@@ -93,10 +101,17 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             "discoverReaders#start" -> {
                 val arguments = call.arguments as HashMap<*, *>
                 simulated = arguments["simulated"] as Boolean
+
+                generateLog(
+                    "discoverReaders",
+                    "Started the discover process. Simulated mode: $simulated"
+                )
+
                 val config = DiscoveryConfiguration(
                     isSimulated = simulated,
                     discoveryMethod = DiscoveryMethod.BLUETOOTH_SCAN
                 )
+
                 cancelableDiscover =
                     Terminal.getInstance().discoverReaders(config, object : DiscoveryListener {
 
@@ -107,8 +122,8 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                             }
                             currentActivity?.runOnUiThread {
                                 channel.invokeMethod("onReadersFound", rawReaders)
+                                generateLog("onUpdateDiscoveredReaders", Gson().toJson(rawReaders))
                             }
-
                         }
 
                     }, object : Callback {
@@ -160,9 +175,14 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             }
             "connectToReader" -> {
                 when (Terminal.getInstance().connectionStatus) {
+
                     ConnectionStatus.NOT_CONNECTED -> {
+
                         val arguments = call.arguments as HashMap<*, *>
                         val readerSerialNumber = arguments["readerSerialNumber"] as String
+
+                        generateLog("connectToReader", "Started connecting to $readerSerialNumber")
+
 
                         val reader = activeReaders.firstOrNull {
                             it.serialNumber == readerSerialNumber
@@ -180,6 +200,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
                         val locationId: String? = (arguments["locationId"]
                             ?: reader.location?.id) as String?
+
+                        generateLog("connectToReader", "Location Id $locationId")
+
 
                         if (locationId == null) {
                             result.error(
@@ -231,7 +254,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     }
                 }
             }
-            "readPaymentMethod" -> {
+            "readReusableCardDetail" -> {
+                generateLog("readReusableCardDetail", "Started reading payment method")
+
                 if (Terminal.getInstance().connectedReader == null) {
                     result.error(
                         "stripeTerminal#deviceNotConnected",
@@ -240,11 +265,10 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     )
                 } else {
                     val params = ReadReusableCardParameters.Builder().build()
-
                     Terminal.getInstance().readReusableCard(params, object : PaymentMethodCallback {
                         override fun onFailure(e: TerminalException) {
                             result.error(
-                                "stripeTerminal#unabletToReadCardDetail",
+                                "stripeTerminal#unableToReadCardDetail",
                                 "Device was not able to read payment method details because ${e.errorMessage}",
                                 e.stackTraceToString()
                             )
@@ -255,6 +279,81 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         }
 
                     })
+                }
+            }
+            "collectPaymentMethod" -> {
+                generateLog("collectPaymentMethod", "Started reading payment method")
+
+                if (Terminal.getInstance().connectedReader == null) {
+                    result.error(
+                        "stripeTerminal#deviceNotConnected",
+                        "You must connect to a device before you can use it.",
+                        null
+                    )
+                } else {
+
+                    val arguments = call.arguments as HashMap<*, *>
+                    val paymentIntentClientSecret =
+                        arguments["paymentIntentClientSecret"] as String?
+                    if (paymentIntentClientSecret == null) {
+                        result.error(
+                            "stripeTerminal#deviceNotConnected",
+                            "You must connect to a device before you can use it.",
+                            null
+                        )
+                        return
+                    }
+
+                    Terminal.getInstance()
+                        .retrievePaymentIntent(
+                            paymentIntentClientSecret,
+                            object : PaymentIntentCallback {
+                                override fun onFailure(e: TerminalException) {
+                                    result.error(
+                                        "stripeTerminal#unableToRetrivePaymentIntent",
+                                        "Stripe was not able to fetch the payment intent with the provided client secret. ${e.errorMessage}",
+                                        e.stackTraceToString()
+                                    )
+                                }
+
+                                override fun onSuccess(paymentIntent: PaymentIntent) {
+                                    Terminal.getInstance().collectPaymentMethod(
+                                        paymentIntent,
+                                        object : PaymentIntentCallback {
+                                            override fun onSuccess(paymentIntent: PaymentIntent) {
+                                                Terminal.getInstance().processPayment(paymentIntent, object : PaymentIntentCallback {
+                                                    override fun onSuccess(paymentIntent: PaymentIntent) {
+                                                        currentActivity?.runOnUiThread {
+                                                            generateLog(
+                                                                "collectPaymentMethod",
+                                                                Gson().toJson(paymentIntent.rawJson())
+                                                            )
+                                                        }
+                                                        result.success(paymentIntent.rawJson())
+                                                    }
+
+                                                    override fun onFailure(e: TerminalException) {
+                                                        result.error(
+                                                            "stripeTerminal#unableToProcessPayment",
+                                                            "Stripe reader was not able to process the payment for the provided payment intent. ${e.errorMessage}",
+                                                            e.stackTraceToString()
+                                                        )
+                                                    }
+                                                })
+
+                                            }
+
+                                            override fun onFailure(e: TerminalException) {
+                                                result.error(
+                                                    "stripeTerminal#unableToCollectPaymentMethod",
+                                                    "Stripe reader was not able to collect the payment method for the provided payment intent. ${e.errorMessage}",
+                                                    e.stackTraceToString()
+                                                )
+                                            }
+                                        })
+                                }
+
+                            })
                 }
             }
             else -> result.notImplemented()
@@ -417,7 +516,36 @@ fun Reader.rawJson(): HashMap<String, Any?> {
     json["availableUpdate"] = availableUpdate?.hasFirmwareUpdate ?: false
     json["locationId"] = location?.id
     json["serialNumber"] = serialNumber
+    return json
+}
 
+fun PaymentIntent.rawJson(): HashMap<String, Any?> {
+    val json = HashMap<String, Any?>()
+    json["id"] = id
+    json["amount"] = amount
+    json["amount_capturable"] = amountCapturable
+    json["amount_received"] = amountReceived
+    json["application"] = application
+    json["application_fee_amount"] = applicationFeeAmount
+    json["capture_method"] = captureMethod
+    json["cancellation_reason"] = cancellationReason
+    json["canceled_at"] = canceledAt
+    json["client_secret"] = clientSecret
+    json["confirmation_method"] = confirmationMethod
+    json["created"] = created
+    json["currency"] = currency
+    json["customer"] = customer
+    json["description"] = description
+    json["invoice"] = invoice
+    json["livemode"] = livemode
+    json["metadata"] = metadata
+    json["on_behalf_of"] = onBehalfOf
+    json["payment_method_id"] = paymentMethodId
+    json["status"] = status?.name?.lowercase()
+    json["review"] = review
+    json["receipt_email"] = receiptEmail
+    json["transfer_group"] = transferGroup
+    json["setup_future_usage"] = setupFutureUsage
 
     return json
 }

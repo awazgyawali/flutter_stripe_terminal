@@ -7,7 +7,8 @@ class StripeReader {
   DeviceType deviceType;
   Map<String, dynamic> originalJSON;
   bool simulated, availableUpdate;
-  String locationId, serialNumber;
+  String? locationId;
+  String serialNumber;
   String? label;
   StripeReader({
     required this.locationStatus,
@@ -16,8 +17,8 @@ class StripeReader {
     required this.originalJSON,
     required this.simulated,
     required this.availableUpdate,
-    required this.locationId,
     required this.serialNumber,
+    this.locationId,
     this.label,
   });
 
@@ -26,7 +27,7 @@ class StripeReader {
       locationStatus: LocationStatus.values[json["locationStatus"]],
       batteryStatus: BatteryStatus.values[json["batteryStatus"]],
       deviceType: DeviceType.values[json["deviceType"]],
-      originalJSON: Map.from(json["originalJSON"]),
+      originalJSON: Map.from(json["originalJSON"] ?? {}),
       simulated: json["simulated"],
       label: json["label"],
       availableUpdate: json["availableUpdate"],
