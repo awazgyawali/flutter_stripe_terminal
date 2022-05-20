@@ -26,7 +26,7 @@ class StripeReader {
       locationStatus: LocationStatus.values[json["locationStatus"]],
       batteryStatus: BatteryStatus.values[json["batteryStatus"]],
       deviceType: DeviceType.values[json["deviceType"]],
-      originalJSON: Map.from(json["originalJSON"]),
+      originalJSON: Map.from(json["originalJSON"] ?? {}),
       simulated: json["simulated"],
       label: json["label"],
       availableUpdate: json["availableUpdate"],
