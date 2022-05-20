@@ -90,6 +90,8 @@ class StripeTerminal {
   }
 
   /// Extracts payment method from the reader
+  ///
+  /// Only support `insert` operation on the reader
   Future<StripePaymentMethod> readReusableCardDetail() async {
     Map cardDetail = await _channel.invokeMethod("readReusableCardDetail");
     return StripePaymentMethod.fromJson(cardDetail);
@@ -124,6 +126,8 @@ class StripeTerminal {
   ///
   /// Once passed, the payment intent will be fetched and the payment method is captures. A sucessful function call
   /// should return an instance of `StripePaymentIntent` with status `requiresCapture`;
+  ///
+  /// Only supports `swipe`, `tap` and `insert` method
   Future<StripePaymentIntent> collectPaymentMethod(String clientSecret) async {
     Map paymentIntent = await _channel.invokeMethod("collectPaymentMethod", {
       "paymentIntentClientSecret": clientSecret,

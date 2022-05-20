@@ -175,14 +175,11 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             }
             "connectToReader" -> {
                 when (Terminal.getInstance().connectionStatus) {
-
                     ConnectionStatus.NOT_CONNECTED -> {
-
                         val arguments = call.arguments as HashMap<*, *>
                         val readerSerialNumber = arguments["readerSerialNumber"] as String
 
                         generateLog("connectToReader", "Started connecting to $readerSerialNumber")
-
 
                         val reader = activeReaders.firstOrNull {
                             it.serialNumber == readerSerialNumber
@@ -202,7 +199,6 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                             ?: reader.location?.id) as String?
 
                         generateLog("connectToReader", "Location Id $locationId")
-
 
                         if (locationId == null) {
                             result.error(

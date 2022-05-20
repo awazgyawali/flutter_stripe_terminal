@@ -1,6 +1,11 @@
+## 1.2.0
+**Breaking Change**
+Refactored readReusableCardDetail function to only collect card detail using insert method.
+Tested with real M2 reader
+Added collectPaymentMethod function to collect payment method using NFC and swipe reader
 ## 1.1.0
 
-Added dsupport for flutter 3.0.0
+Added support for flutter 3.0.0
 ## 1.0.0+4
 
 Fixed Initilization Issue

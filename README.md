@@ -59,6 +59,21 @@ You also need to authorize backround modes authorization for `bluetooth-central`
             data: token.secret
         });
     });
+
+    app.post("/createPaymentIntent", async (req, res) => {
+        const pi = await stripe.paymentIntents.create({
+            amount: 1000,
+            currency: "USD",
+            capture_method: "manual",
+            payment_method_types: ["card_present"]
+        })
+
+        res.send({
+            success: true,
+            paymentIntent: pi
+        })
+    })
+
     app.listen(8000, () => {
         console.log("Server started")
     });
@@ -86,9 +101,27 @@ You also need to authorize backround modes authorization for `bluetooth-central`
 - **Scan a card from the reader**
 ```
     stripeTerminal
-        .readPaymentMethod()
+        .readReusableCardDetail()
         .then((StripePaymentMethod paymentMethod) {
             print("A card was read, the last four digit is ${paymentMethod.card?.last4}");
+        });
+```
+
+- **Scan payment method from the reader using tap, swipe, insert method**
+```
+    // Get this from your backend by creating a new payment intent
+    
+    Future<String> createPaymentIntent() async {
+        Response invoice = await _dio.post("/createPaymentIntent");
+        return invoice.data["paymentIntent"]["client_secret"];
+    }
+
+    String payment_intent_client_secret = await createPaymentIntent();
+
+    stripeTerminal
+        .collectPaymentMethod(payment_intent_client_secret)
+        .then((StripePaymentIntent paymentIntent) {
+            print("A payment intent has captured a payment method, send this payment intent to you backend to capture the payment");
         });
 ```
 
