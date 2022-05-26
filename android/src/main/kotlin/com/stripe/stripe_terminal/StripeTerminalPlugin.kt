@@ -98,6 +98,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     isSimulated = simulated,
                     discoveryMethod = DiscoveryMethod.BLUETOOTH_SCAN
                 )
+                Log.d("discoverReaders", "[Stripe onUpdateDiscoveredReaders] Start onUpdateDiscoveredReaders process")
                 cancelableDiscover =
                     Terminal.getInstance().discoverReaders(config, object : DiscoveryListener {
 
@@ -106,6 +107,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                             val rawReaders = readers.map {
                                 it.rawJson()
                             }
+                            Log.d("discoverReaders", "[Stripe onUpdateDiscoveredReaders] discovered readers: $rawReaders")
                             currentActivity?.runOnUiThread {
                                 channel.invokeMethod("onReadersFound", rawReaders)
                             }
@@ -301,8 +303,13 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         val arguments = call.arguments as HashMap<*, *>
                         val amountText = arguments["amount"] as String
                         val amount = amountText.toLong()
-                        // Start payment process
-                        startPayment(amount, result)
+
+                        val clientSecret = arguments["clientSecret"] as String?
+
+
+                            // Start payment process without creating new paymentIntent
+                            startPayment(amount, result, clientSecret)
+
 
                     }
                     ConnectionStatus.CONNECTING -> {
@@ -328,7 +335,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
     }
 
-    private fun startPayment(amount: Long, resultCallback: Result) {
+    private fun startPayment(amount: Long, resultCallback: Result, clientSecret: String?) {
         val params = PaymentIntentParameters.Builder(listOf(PaymentMethodType.CARD_PRESENT))
             .setAmount(amount)
             .setCurrency("usd")
@@ -338,8 +345,16 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
         Log.d("StripePayment", "[Stripe Payment] PaymentIntentParameters.Builder amount: $amount $params")
 
-        // Step 1: create payment intent
-        Terminal.getInstance().createPaymentIntent(params, createPaymentIntentCallback)
+        if (clientSecret != null && clientSecret.isNotEmpty()) {
+            // If clientSecret is provided, no need to create a new paymentIntent
+            // Instead, fetch the paymentIntent using the provided clientSecret
+            // Step 1: Fetch the paymentIntent using the [clientSecret]
+            Terminal.getInstance().retrievePaymentIntent(clientSecret, createPaymentIntentCallback)
+        }else{
+            // Step 1: create payment intent
+            Terminal.getInstance().createPaymentIntent(params, createPaymentIntentCallback)
+        }
+
     }
 
     // Step 2 - once we've created the payment intent, it's time to read the card
@@ -365,6 +380,14 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
     // Step 3 - we've collected the payment method, so it's time to process the payment
     private val collectPaymentMethodCallback by lazy {
+//        object : ReaderDisplayListener {
+//            override fun onRequestReaderInput(options: ReaderInputOptions) {
+//                // Placeholder for updating your app's checkout UI
+//                currentActivity?.runOnUiThread {
+//                    channel.invokeMethod("onRequestReaderInput", options.toString())
+//                }
+//            }
+//        },
         object : PaymentIntentCallback {
             override fun onSuccess(paymentIntent: PaymentIntent) {
                 Log.d("StripePayment", "[Stripe Payment] Collected Payment successfully!!!")
@@ -437,7 +460,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
         return false
     }
-
+    
 
     override fun onRequestPermissionsResult(
         requestCode: Int,

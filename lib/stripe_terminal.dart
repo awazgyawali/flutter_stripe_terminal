@@ -25,9 +25,17 @@ class StripeTerminal {
           return fetchToken();
         case "onReadersFound":
           List readers = call.arguments;
+          print("StripeTerminal: onReadersFound $readers");
           _readerStreamController.add(
             readers.map<StripeReader>((e) => StripeReader.fromJson(e)).toList(),
           );
+
+          return fetchToken();
+        case "onRequestReaderInput":
+          if (call.arguments is String) {
+            String requestReaderInput = call.arguments;
+            _onRequestReaderInputController.add(requestReaderInput);
+          }
           return fetchToken();
         default:
           return null;
@@ -94,6 +102,9 @@ class StripeTerminal {
   StreamController<List<StripeReader>> _readerStreamController =
       StreamController<List<StripeReader>>();
 
+  StreamController<String> _onRequestReaderInputController =
+      StreamController<String>();
+
   /// Starts scanning readers in the vicinity. This will return a list of readers.
   ///
   /// Can contain an empty array if no readers are found.
@@ -102,10 +113,12 @@ class StripeTerminal {
   Stream<List<StripeReader>> discoverReaders({
     bool simulated = false,
   }) {
+    print("StripeTerminal: discoverReaders#start");
     _channel.invokeMethod("discoverReaders#start", {
       "simulated": simulated,
     });
     _readerStreamController.onCancel = () {
+      print("StripeTerminal: discoverReaders#stop");
       _channel.invokeMethod("discoverReaders#stop");
       _readerStreamController.close();
       _readerStreamController = StreamController<List<StripeReader>>();
@@ -115,16 +128,40 @@ class StripeTerminal {
 
   /// Starts the whole payment process.
   /// Sends a request to the connected Stripe card reader to swipe card
-  Future<Map?> startPaymentProcess(String amount) async {
-    Map? response = await _channel.invokeMethod<Map>("startPayment", {
-      "amount": amount,
-    });
+  Future<Map?> startPaymentProcess(String amount,
+      {String? clientSecret}) async {
+    Map? response;
+    if (clientSecret != null && clientSecret.isNotEmpty) {
+      // if clientSecret is passed,
+      // start payment process without creating a new paymentIntent from app side
+      response = await _channel.invokeMethod<Map>(
+          "startPayment", {"amount": amount, "clientSecret": clientSecret});
+    } else {
+      // Create paymentIntent from app side. Then continue to process the payment
+      response = await _channel.invokeMethod<Map>("startPayment", {
+        "amount": amount,
+      });
+    }
+
     if (response != null &&
         response['isSuccess'] != null &&
         response['isSuccess']) {
       return response;
     } else {
-      throw Exception("Unable to connect to the reader");
+      throw Exception("Payment process failed!");
     }
+  }
+
+  /// Starts listening for 'onRequestReaderInput' events.
+  ///
+  /// e.g. Swipe, Insert, Tap.
+  Stream<String> onRequestReaderInputStream({
+    bool simulated = false,
+  }) {
+    _onRequestReaderInputController.onCancel = () {
+      _onRequestReaderInputController.close();
+      _onRequestReaderInputController = StreamController<String>();
+    };
+    return _onRequestReaderInputController.stream;
   }
 }
