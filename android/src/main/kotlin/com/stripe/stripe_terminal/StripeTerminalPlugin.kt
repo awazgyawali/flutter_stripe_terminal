@@ -235,6 +235,10 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         Terminal.getInstance().connectBluetoothReader(
                             reader,
                             connectionConfig,
+                            object : BluetoothReaderListener {
+
+
+                            },
                             object : ReaderCallback {
                                 override fun onFailure(e: TerminalException) {
                                     result.error(
