@@ -201,8 +201,8 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
             if (paymentIntentClientSecret == nil) {
                 result(
                     FlutterError(
-                        code:   "stripeTerminal#deviceNotConnected",
-                        message:  "You must connect to a device before you can use it.",
+                        code:   "stripeTerminal#invalidPaymentIntentClientSecret",
+                        message:  "The payment intent client_secret seems to be invalid or missing.",
                         details:   nil
                     )
                 )
@@ -228,21 +228,61 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                                 )
                             )
                         } else {
-                            Terminal.shared.processPayment(paymentIntent!) { paymentIntent, error in
-                                if let error = error {
-                                    result(
-                                        FlutterError(
-                                            code: "stripeTerminal#unableToProcessPayment",
-                                            message: "Stripe reader was not able to process the payment for the provided payment intent.  \(error.localizedDescription)",
-                                            details: nil
-                                        )
-                                    )
-                                } else {
-                                    self.generateLog(code: "processPayment", message: paymentIntent!.originalJSON.description)
-                                    result(paymentIntent?.originalJSON)
-                                }
-                            }
-                            
+                            self.generateLog(code: "collectPaymentMethod", message: paymentIntent!.originalJSON.description)
+                            result(paymentIntent?.originalJSON)
+                        }
+                    }
+                }
+            }
+            break;
+        case "processPayment":
+            if(Terminal.shared.connectedReader == nil){
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#deviceNotConnected",
+                        message: "You must connect to a device before you can use it.",
+                        details: nil
+                    )
+                )
+                return
+            }
+            
+            let arguments = call.arguments as! Dictionary<String, Any>?
+            
+            let paymentIntentClientSecret = arguments!["paymentIntentClientSecret"] as! String?
+            
+            if (paymentIntentClientSecret == nil) {
+                result(
+                    FlutterError(
+                        code:   "stripeTerminal#deviceNotConnected",
+                        message:  "You must connect to a device before you can use it.",
+                        details:   nil
+                    )
+                )
+                return
+            }
+            Terminal.shared.retrievePaymentIntent(clientSecret: paymentIntentClientSecret!) { paymentIntent, error in
+                if let error = error {
+                    result(
+                        FlutterError(
+                            code: "stripeTerminal#unableToRetrivePaymentIntent",
+                            message: "Stripe was not able to fetch the payment intent with the provided client secret. \(error.localizedDescription)",
+                            details: nil
+                        )
+                    )
+                } else {
+                    Terminal.shared.processPayment(paymentIntent!) { paymentIntent, error in
+                        if let error = error {
+                            result(
+                                FlutterError(
+                                    code: "stripeTerminal#unableToProcessPayment",
+                                    message: "Stripe reader was not able to process the payment for the provided payment intent.  \(error.localizedDescription)",
+                                    details: nil
+                                )
+                            )
+                        } else {
+                            self.generateLog(code: "processPayment", message: paymentIntent!.originalJSON.description)
+                            result(paymentIntent?.originalJSON)
                         }
                     }
                 }

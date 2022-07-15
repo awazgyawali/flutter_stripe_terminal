@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,22 +25,20 @@ class _MyAppState extends State<MyApp> {
   final Dio _dio = Dio(
     BaseOptions(
       // TODO: THIS URL does not work
-      baseUrl: "http://34.209.150.202:8080/",
+      baseUrl: "http://localhost:8000",
     ),
   );
 
   Future<String> getConnectionString() async {
     // get api call using _dio to get connection token
-    Response response = await _dio.get("/connectionToken", queryParameters: {
-      "simulated": simulated,
-    });
-    if (!response.data["success"]) {
+    Response response = await _dio.get("/connectionToken");
+    if (!jsonDecode(response.data)["success"]) {
       throw Exception(
         "Failed to get connection token because ${response.data["message"]}",
       );
     }
 
-    return response.data["data"];
+    return jsonDecode(response.data)["token"];
   }
 
   Future<void> _pushLogs(StripeLog log) async {
@@ -47,11 +47,13 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<String> createPaymentIntent() async {
-    Response invoice = await _dio.post(
-      "/createPaymentIntent",
-      queryParameters: {"simulated": simulated},
-    );
-    return invoice.data["paymentIntent"]["client_secret"];
+    Response invoice = await _dio.post("/createPaymentIntent", data: {
+      "email": "awazgyawali@gmail.com",
+      "order": {"test": "1"},
+      "ticketCount": 3,
+      "price": 5,
+    });
+    return jsonDecode(invoice.data)["paymentIntent"]["client_secret"];
   }
 
   late StripeTerminal stripeTerminal;
@@ -72,6 +74,7 @@ class _MyAppState extends State<MyApp> {
 
   StreamSubscription? _sub;
   List<StripeReader>? readers;
+  String? paymentIntentId;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -184,14 +187,31 @@ class _MyAppState extends State<MyApp> {
               },
             ),
             TextButton(
-              child: const Text("Capture Payment"),
+              child: const Text("Collect Payment Method"),
               onPressed: () async {
-                String paymentIntent = await createPaymentIntent();
+                paymentIntentId = await createPaymentIntent();
                 stripeTerminal
-                    .collectPaymentMethod(paymentIntent)
-                    .then((StripePaymentIntent paymentMethod) {
+                    .collectPaymentMethod(paymentIntentId!)
+                    .then((StripePaymentIntent paymentIntent) {
+                  print(paymentIntent.status.toString());
+                  _dio.post("/confirmPaymentIntent", data: {
+                    "paymentIntentId": paymentIntent.id,
+                  });
                   _showSnackbar(
                     "A payment method was captured",
+                  );
+                });
+              },
+            ),
+            TextButton(
+              child: const Text("Process Payment"),
+              onPressed: () async {
+                if (paymentIntentId == null) return;
+                stripeTerminal
+                    .processPayment(paymentIntentId!)
+                    .then((StripePaymentIntent paymentIntent) {
+                  _showSnackbar(
+                    "A payment intent was processed",
                   );
                 });
               },

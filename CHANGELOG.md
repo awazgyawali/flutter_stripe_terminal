@@ -1,3 +1,6 @@
+## 1.3.0
+**Breaking Change**
+Once the 'collectPaymentMethod' is called, you need to call `processPayment` with same client_secret to make the payment ready.
 ## 1.2.0
 **Breaking Change**
 Refactored readReusableCardDetail function to only collect card detail using insert method.

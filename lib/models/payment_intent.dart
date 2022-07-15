@@ -55,7 +55,6 @@ class StripePaymentIntent {
   });
 
   static StripePaymentIntent fromMap(Map data) {
-    print(data);
     return StripePaymentIntent(
       id: data["id"],
       amount: data["amount"],

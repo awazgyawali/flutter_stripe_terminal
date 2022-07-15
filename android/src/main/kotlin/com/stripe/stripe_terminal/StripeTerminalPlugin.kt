@@ -293,8 +293,8 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         arguments["paymentIntentClientSecret"] as String?
                     if (paymentIntentClientSecret == null) {
                         result.error(
-                            "stripeTerminal#deviceNotConnected",
-                            "You must connect to a device before you can use it.",
+                            "stripeTerminal#invalidPaymentIntentClientSecret",
+                            "The payment intent client_secret seems to be invalid or missing.",
                             null
                         )
                         return
@@ -317,26 +317,13 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                                         paymentIntent,
                                         object : PaymentIntentCallback {
                                             override fun onSuccess(paymentIntent: PaymentIntent) {
-                                                Terminal.getInstance().processPayment(paymentIntent, object : PaymentIntentCallback {
-                                                    override fun onSuccess(paymentIntent: PaymentIntent) {
-                                                        currentActivity?.runOnUiThread {
-                                                            generateLog(
-                                                                "collectPaymentMethod",
-                                                                Gson().toJson(paymentIntent.rawJson())
-                                                            )
-                                                        }
-                                                        result.success(paymentIntent.rawJson())
-                                                    }
-
-                                                    override fun onFailure(e: TerminalException) {
-                                                        result.error(
-                                                            "stripeTerminal#unableToProcessPayment",
-                                                            "Stripe reader was not able to process the payment for the provided payment intent. ${e.errorMessage}",
-                                                            e.stackTraceToString()
-                                                        )
-                                                    }
-                                                })
-
+                                                currentActivity?.runOnUiThread {
+                                                    generateLog(
+                                                        "collectPaymentMethod",
+                                                        Gson().toJson(paymentIntent.rawJson())
+                                                    )
+                                                }
+                                                result.success(paymentIntent.rawJson())
                                             }
 
                                             override fun onFailure(e: TerminalException) {
@@ -349,6 +336,65 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                                         })
                                 }
 
+                            })
+                }
+            }
+            "processPayment" -> {
+                generateLog("processPayment", "Started processing payment")
+                if (Terminal.getInstance().connectedReader == null) {
+                    result.error(
+                        "stripeTerminal#deviceNotConnected",
+                        "You must connect to a device before you can use it.",
+                        null
+                    )
+                } else {
+                    val arguments = call.arguments as HashMap<*, *>
+                    val paymentIntentClientSecret =
+                        arguments["paymentIntentClientSecret"] as String?
+                    if (paymentIntentClientSecret == null) {
+                        result.error(
+                            "stripeTerminal#invalidPaymentIntentClientSecret",
+                            "The payment intent client_secret seems to be invalid or missing.",
+                            null
+                        )
+                        return
+                    }
+                    Terminal.getInstance()
+                        .retrievePaymentIntent(
+                            paymentIntentClientSecret,
+                            object : PaymentIntentCallback {
+                                override fun onFailure(e: TerminalException) {
+                                    result.error(
+                                        "stripeTerminal#unableToRetrivePaymentIntent",
+                                        "Stripe was not able to fetch the payment intent with the provided client secret. ${e.errorMessage}",
+                                        e.stackTraceToString()
+                                    )
+                                }
+
+                                override fun onSuccess(paymentIntent: PaymentIntent) {
+                                    Terminal.getInstance()
+                                        .processPayment(
+                                            paymentIntent,
+                                            object : PaymentIntentCallback {
+                                                override fun onSuccess(paymentIntent: PaymentIntent) {
+                                                    currentActivity?.runOnUiThread {
+                                                        generateLog(
+                                                            "processPayment",
+                                                            Gson().toJson(paymentIntent.rawJson())
+                                                        )
+                                                    }
+                                                    result.success(paymentIntent.rawJson())
+                                                }
+
+                                                override fun onFailure(e: TerminalException) {
+                                                    result.error(
+                                                        "stripeTerminal#unableToProcessPayment",
+                                                        "Stripe reader was not able to process the payment for the provided payment intent. ${e.errorMessage}",
+                                                        e.stackTraceToString()
+                                                    )
+                                                }
+                                            })
+                                }
                             })
                 }
             }
