@@ -208,6 +208,9 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                 )
                 return
             }
+            
+            let collectConfiguration = arguments!["collectConfiguration"] as! Dictionary<String, Any>?
+            let collectConfig = CollectConfiguration(skipTipping: collectConfiguration!["skipTipping"] as! Bool)
             Terminal.shared.retrievePaymentIntent(clientSecret: paymentIntentClientSecret!) { paymentIntent, error in
                 if let error = error {
                     result(
@@ -218,7 +221,7 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                         )
                     )
                 } else {
-                    Terminal.shared.collectPaymentMethod(paymentIntent!) { paymentIntent, error in
+                    Terminal.shared.collectPaymentMethod(paymentIntent!, collectConfig: collectConfig) { paymentIntent, error in
                         if let error = error {
                             result(
                                 FlutterError(

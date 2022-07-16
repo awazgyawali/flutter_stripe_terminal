@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import com.google.gson.Gson
 import com.stripe.stripeterminal.Terminal
 import com.stripe.stripeterminal.TerminalApplicationDelegate
+import com.stripe.stripeterminal.external.OnReaderTips
 import com.stripe.stripeterminal.external.callable.*
 import com.stripe.stripeterminal.external.models.*
 import com.stripe.stripeterminal.log.LogLevel
@@ -91,6 +92,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
         channel.invokeMethod("onNativeLog", log)
     }
 
+    @OptIn(OnReaderTips::class)
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
         when (call.method) {
             "init" -> {
@@ -300,6 +302,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         return
                     }
 
+                    val collectConfiguration =
+                        arguments["collectConfiguration"] as HashMap<*, *>
+                    val collectConfig = CollectConfiguration(skipTipping =  collectConfiguration["skipTipping"] as Boolean);
                     Terminal.getInstance()
                         .retrievePaymentIntent(
                             paymentIntentClientSecret,
@@ -333,7 +338,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                                                     e.stackTraceToString()
                                                 )
                                             }
-                                        })
+                                        },
+                                        collectConfig,
+                                    )
                                 }
 
                             })

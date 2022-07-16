@@ -10,6 +10,7 @@ part "models/log.dart";
 part "models/reader.dart";
 part "models/payment_intent.dart";
 part 'models/payment_method.dart';
+part "models/collect_configuration.dart";
 
 class StripeTerminal {
   static const MethodChannel _channel = MethodChannel('stripe_terminal');
@@ -128,9 +129,15 @@ class StripeTerminal {
   /// should return an instance of `StripePaymentIntent` with status `requiresPaymentMethod`;
   ///
   /// Only supports `swipe`, `tap` and `insert` method
-  Future<StripePaymentIntent> collectPaymentMethod(String clientSecret) async {
+  Future<StripePaymentIntent> collectPaymentMethod(
+    String clientSecret, {
+    CollectConfiguration? collectConfiguration = const CollectConfiguration(
+      skipTipping: true,
+    ),
+  }) async {
     Map paymentIntent = await _channel.invokeMethod("collectPaymentMethod", {
       "paymentIntentClientSecret": clientSecret,
+      "collectConfiguration": collectConfiguration?.toMap(),
     });
 
     return StripePaymentIntent.fromMap(paymentIntent);
