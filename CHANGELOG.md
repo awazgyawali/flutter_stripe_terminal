@@ -1,3 +1,6 @@
+## 1.3.4
+`disconnectFromReader` function has been added
+
 ## 1.3.3
 Once the 'collectPaymentMethod' is called, you need to call `processPayment` with same client_secret to make the payment ready.
 Removed `processPayment` function, `collectPaymentMethod` will call it internally.
