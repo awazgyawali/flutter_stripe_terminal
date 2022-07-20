@@ -25,7 +25,7 @@ class _MyAppState extends State<MyApp> {
   final Dio _dio = Dio(
     BaseOptions(
       // TODO: THIS URL does not work
-      baseUrl: "http://localhost:8000",
+      baseUrl: "https://fe9f-103-163-182-2.in.ngrok.io",
     ),
   );
 
@@ -192,26 +192,12 @@ class _MyAppState extends State<MyApp> {
                 paymentIntentId = await createPaymentIntent();
                 stripeTerminal
                     .collectPaymentMethod(paymentIntentId!)
-                    .then((StripePaymentIntent paymentIntent) {
-                  print(paymentIntent.status.toString());
+                    .then((StripePaymentIntent paymentIntent) async {
                   _dio.post("/confirmPaymentIntent", data: {
                     "paymentIntentId": paymentIntent.id,
                   });
                   _showSnackbar(
                     "A payment method was captured",
-                  );
-                });
-              },
-            ),
-            TextButton(
-              child: const Text("Process Payment"),
-              onPressed: () async {
-                if (paymentIntentId == null) return;
-                stripeTerminal
-                    .processPayment(paymentIntentId!)
-                    .then((StripePaymentIntent paymentIntent) {
-                  _showSnackbar(
-                    "A payment intent was processed",
                   );
                 });
               },

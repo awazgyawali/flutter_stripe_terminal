@@ -1,3 +1,7 @@
+## 1.3.3
+Once the 'collectPaymentMethod' is called, you need to call `processPayment` with same client_secret to make the payment ready.
+Removed `processPayment` function, `collectPaymentMethod` will call it internally.
+
 ## 1.3.2
 Added support to skipTipping on `collectPaymentMethod` function.
 ## 1.3.1

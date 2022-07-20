@@ -142,21 +142,4 @@ class StripeTerminal {
 
     return StripePaymentIntent.fromMap(paymentIntent);
   }
-
-  /// Starts processing payment intent
-  ///
-  /// Once the payment method is captured from the reader, you will need to call this function to complete the charge.
-  /// Or, use the payment intent id on the backend to complete it
-  ///
-  /// Once passed, the payment intent will be fetched and the payment method is captures. A sucessful function call
-  /// should return an instance of `StripePaymentIntent` with status `requiresCapture`;
-  ///
-  /// Only supports `swipe`, `tap` and `insert` method
-  Future<StripePaymentIntent> processPayment(String clientSecret) async {
-    Map paymentIntent = await _channel.invokeMethod("processPayment", {
-      "paymentIntentClientSecret": clientSecret,
-    });
-
-    return StripePaymentIntent.fromMap(paymentIntent);
-  }
 }
