@@ -70,6 +70,19 @@ class StripeTerminal {
     }
   }
 
+  /// Disconnects from a reader, only works if you are connected to a device
+  ///
+  /// Always run `connectToReader` before calling this function
+  Future<bool> disconnectFromReader() async {
+    bool? disconnected =
+        await _channel.invokeMethod<bool?>("disconnectFromReader");
+    if (disconnected == null) {
+      throw Exception("Unable to disconnect from the reader");
+    } else {
+      return disconnected;
+    }
+  }
+
   /// Checks the connection status of the SDK
   Future<ConnectionStatus> connectionStatus() async {
     int? statusId = await _channel.invokeMethod<int>("connectionStatus");

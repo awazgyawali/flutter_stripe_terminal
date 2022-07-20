@@ -85,6 +85,22 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
         case "connectionStatus":
             result(Terminal.shared.connectionStatus.rawValue)
             break;
+        case "disconnectFromReader":
+            Terminal.shared.disconnectReader { err in
+                if(err != nil) {
+                    result(
+                        FlutterError(
+                            code: "stripeTerminal#unableToDisconnect",
+                            message: "Unable to disconnect from device because \(err?.localizedDescription)",
+                            details: nil
+                        )
+                    )
+                } else {
+                    result(true)
+                }
+                
+            }
+            break;
             
         case "connectToReader":
             if(Terminal.shared.connectionStatus == ConnectionStatus.notConnected){
