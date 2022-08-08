@@ -54,7 +54,7 @@ class StripeTerminal {
   /// you can listen to the native logs to understand whats going wrong.
   Stream<StripeLog> get onNativeLogs => _logsStreamController.stream;
 
-  /// Connects to a reader, only works if you have scanned devices within this session.
+  /// Connects to a bluetooth reader, only works if you have scanned devices within this session.
   ///
   /// Always run `discoverReaders` before calling this function
   @Deprecated(
@@ -76,7 +76,7 @@ class StripeTerminal {
     }
   }
 
-  /// Connects to a reader, only works if you have scanned devices within this session.
+  /// Connects to a bluetooth reader, only works if you have scanned devices within this session.
   ///
   /// Always run `discoverReaders` before calling this function
   Future<bool> connectBluetoothReader(
@@ -86,6 +86,25 @@ class StripeTerminal {
     bool? connected =
         await _channel.invokeMethod<bool?>("connectBluetoothReader", {
       "locationId": locationId,
+      "readerSerialNumber": readerSerialNumber,
+    });
+    if (connected == null) {
+      throw Exception("Unable to connect to the reader");
+    } else {
+      return connected;
+    }
+  }
+
+  /// Connects to a internet reader, only works if you have scanned devices within this session.
+  ///
+  /// Always run `discoverReaders` before calling this function
+  Future<bool> connectToInternetReader(
+    String readerSerialNumber, {
+    bool failIfInUse = false,
+  }) async {
+    bool? connected =
+        await _channel.invokeMethod<bool?>("connectToInternetReader", {
+      "failIfInUse": failIfInUse,
       "readerSerialNumber": readerSerialNumber,
     });
     if (connected == null) {

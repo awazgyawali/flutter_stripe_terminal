@@ -188,6 +188,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     ConnectionStatus.NOT_CONNECTED -> {
                         val arguments = call.arguments as HashMap<*, *>
                         val readerSerialNumber = arguments["readerSerialNumber"] as String
+                        val failIfInUse = arguments["failIfInUse"] as Boolean
 
                         generateLog("connectToInternetReader", "Started connecting to $readerSerialNumber")
 
@@ -205,30 +206,13 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         }
 
 
-                        val locationId: String? = (arguments["locationId"]
-                            ?: reader.location?.id) as String?
-
-                        generateLog("connectBluetoothReader", "Location Id $locationId")
-
-                        if (locationId == null) {
-                            result.error(
-                                "stripeTerminal#locationNotProvided",
-                                "Either you have to provide the location id or device should be attached to a location",
-                                null
-                            )
-                            return
-                        }
                         val connectionConfig =
-                            ConnectionConfiguration.BluetoothConnectionConfiguration(
-                                locationId,
+                            ConnectionConfiguration.InternetConnectionConfiguration(
+                                failIfInUse = failIfInUse
                             )
-                        Terminal.getInstance().connectBluetoothReader(
+                        Terminal.getInstance().connectInternetReader(
                             reader,
                             connectionConfig,
-                            object : BluetoothReaderListener {
-
-
-                            },
                             object : ReaderCallback {
                                 override fun onFailure(e: TerminalException) {
                                     result.error(
