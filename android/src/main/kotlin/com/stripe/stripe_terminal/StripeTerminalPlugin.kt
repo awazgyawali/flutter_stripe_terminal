@@ -102,16 +102,24 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             }
             "discoverReaders#start" -> {
                 val arguments = call.arguments as HashMap<*, *>
-                simulated = arguments["simulated"] as Boolean
+                val discoverConfig = arguments["config"] as HashMap<*, *>
 
                 generateLog(
                     "discoverReaders",
                     "Started the discover process. Simulated mode: $simulated"
                 )
 
+                val discoveryMethod = StripeTerminalParser.getScanMethod(discoverConfig["discoveryMethod"] as String)
+                    ?: return result.error(
+                        "stripeTerminal#invalidRequest",
+                        "`discoveryMethod` is not provided on discoverReaders function",
+                        null
+                    )
+
                 val config = DiscoveryConfiguration(
-                    isSimulated = simulated,
-                    discoveryMethod = DiscoveryMethod.BLUETOOTH_SCAN
+                    isSimulated = discoverConfig["simulated"] as Boolean,
+                    discoveryMethod = discoveryMethod,
+                    location = discoverConfig["locationId"] as String?
                 )
 
                 cancelableDiscover =
@@ -175,13 +183,13 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             "connectionStatus" -> {
                 result.success(handleConnectionStatus(Terminal.getInstance().connectionStatus))
             }
-            "connectToReader" -> {
+            "connectToInternetReader" -> {
                 when (Terminal.getInstance().connectionStatus) {
                     ConnectionStatus.NOT_CONNECTED -> {
                         val arguments = call.arguments as HashMap<*, *>
                         val readerSerialNumber = arguments["readerSerialNumber"] as String
 
-                        generateLog("connectToReader", "Started connecting to $readerSerialNumber")
+                        generateLog("connectToInternetReader", "Started connecting to $readerSerialNumber")
 
                         val reader = activeReaders.firstOrNull {
                             it.serialNumber == readerSerialNumber
@@ -200,7 +208,84 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         val locationId: String? = (arguments["locationId"]
                             ?: reader.location?.id) as String?
 
-                        generateLog("connectToReader", "Location Id $locationId")
+                        generateLog("connectBluetoothReader", "Location Id $locationId")
+
+                        if (locationId == null) {
+                            result.error(
+                                "stripeTerminal#locationNotProvided",
+                                "Either you have to provide the location id or device should be attached to a location",
+                                null
+                            )
+                            return
+                        }
+                        val connectionConfig =
+                            ConnectionConfiguration.BluetoothConnectionConfiguration(
+                                locationId,
+                            )
+                        Terminal.getInstance().connectBluetoothReader(
+                            reader,
+                            connectionConfig,
+                            object : BluetoothReaderListener {
+
+
+                            },
+                            object : ReaderCallback {
+                                override fun onFailure(e: TerminalException) {
+                                    result.error(
+                                        "stripeTerminal#unableToConnect",
+                                        e.errorMessage,
+                                        e.stackTraceToString()
+                                    )
+                                }
+
+                                override fun onSuccess(reader: Reader) {
+                                    result.success(true)
+                                }
+
+                            })
+                    }
+                    ConnectionStatus.CONNECTING -> {
+                        result.error(
+                            "stripeTerminal#deviceConnecting",
+                            "A new connection is being established with a device thus you cannot request a new connection at the moment.",
+                            null
+                        )
+                    }
+                    ConnectionStatus.CONNECTED -> {
+                        result.error(
+                            "stripeTerminal#deviceAlreadyConnected",
+                            "A device with serial number ${Terminal.getInstance().connectedReader!!.serialNumber} is already connected",
+                            null
+                        )
+                    }
+                }
+            }
+            "connectBluetoothReader" -> {
+                when (Terminal.getInstance().connectionStatus) {
+                    ConnectionStatus.NOT_CONNECTED -> {
+                        val arguments = call.arguments as HashMap<*, *>
+                        val readerSerialNumber = arguments["readerSerialNumber"] as String
+
+                        generateLog("connectBluetoothReader", "Started connecting to $readerSerialNumber")
+
+                        val reader = activeReaders.firstOrNull {
+                            it.serialNumber == readerSerialNumber
+                        }
+
+                        if (reader == null) {
+                            result.error(
+                                "stripeTerminal#readerNotFound",
+                                "Reader with provided serial number no longer exists",
+                                null
+                            )
+                            return
+                        }
+
+
+                        val locationId: String? = (arguments["locationId"]
+                            ?: reader.location?.id) as String?
+
+                        generateLog("connectBluetoothReader", "Location Id $locationId")
 
                         if (locationId == null) {
                             result.error(

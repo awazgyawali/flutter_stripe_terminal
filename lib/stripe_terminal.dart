@@ -3,13 +3,15 @@ library stripe_terminal;
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-part "utils/strings.dart";
 part "models/log.dart";
+part "utils/strings.dart";
 part "models/reader.dart";
 part "models/payment_intent.dart";
 part 'models/payment_method.dart';
+part "models/discover_config.dart";
 part "models/collect_configuration.dart";
 
 class StripeTerminal {
@@ -55,11 +57,34 @@ class StripeTerminal {
   /// Connects to a reader, only works if you have scanned devices within this session.
   ///
   /// Always run `discoverReaders` before calling this function
+  @Deprecated(
+    "Please use `connectBluetoothReader` function instead to connect to the bluetooth reader",
+  )
   Future<bool> connectToReader(
     String readerSerialNumber, {
     String? locationId,
   }) async {
-    bool? connected = await _channel.invokeMethod<bool?>("connectToReader", {
+    bool? connected =
+        await _channel.invokeMethod<bool?>("connectBluetoothReader", {
+      "locationId": locationId,
+      "readerSerialNumber": readerSerialNumber,
+    });
+    if (connected == null) {
+      throw Exception("Unable to connect to the reader");
+    } else {
+      return connected;
+    }
+  }
+
+  /// Connects to a reader, only works if you have scanned devices within this session.
+  ///
+  /// Always run `discoverReaders` before calling this function
+  Future<bool> connectBluetoothReader(
+    String readerSerialNumber, {
+    String? locationId,
+  }) async {
+    bool? connected =
+        await _channel.invokeMethod<bool?>("connectBluetoothReader", {
       "locationId": locationId,
       "readerSerialNumber": readerSerialNumber,
     });
@@ -118,13 +143,11 @@ class StripeTerminal {
   /// Can contain an empty array if no readers are found.
   ///
   /// [simulated] se to `true` will simulate readers which can be connected and tested.
-  Stream<List<StripeReader>> discoverReaders({
-    bool simulated = false,
-  }) {
+  Stream<List<StripeReader>> discoverReaders(DiscoverConfig config) {
     _readerStreamController = StreamController<List<StripeReader>>();
 
     _channel.invokeMethod("discoverReaders#start", {
-      "simulated": simulated,
+      "config": config.toMap(),
     });
     _readerStreamController.onCancel = () {
       _channel.invokeMethod("discoverReaders#stop");

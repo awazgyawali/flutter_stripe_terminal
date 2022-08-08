@@ -115,7 +115,12 @@ class _MyAppState extends State<MyApp> {
                     readers = [];
                   });
                   _sub = stripeTerminal
-                      .discoverReaders(simulated: simulated)
+                      .discoverReaders(
+                    DiscoverConfig(
+                      discoveryMethod: DiscoveryMethod.bluetooth,
+                      simulated: simulated,
+                    ),
+                  )
                       .listen((readers) {
                     setState(() {
                       this.readers = readers;

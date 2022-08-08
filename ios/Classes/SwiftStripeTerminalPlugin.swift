@@ -33,9 +33,25 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
             break;
         case "discoverReaders#start":
             let arguments = call.arguments as! Dictionary<String, Any>
-            let simulated = arguments["simulated"] as! Bool
+            let configData = arguments["config"] as! Dictionary<String, Any>
+            let simulated = configData["simulated"] as! Bool
+            let locationId = configData["locationId"] as? String
+            let discoveryMethodString = configData["discoveryMethod"] as! String
+            let discoveryMethod = StripeTerminalParser.getScanMethod(discoveryMethod: discoveryMethodString)
+            
+            if(discoveryMethod == nil){
+                return result(
+                    FlutterError(
+                        code: "stripeTerminal#invalidRequest",
+                        message: "`discoveryMethod` is not provided on discoverReaders function",
+                        details: nil
+                    )
+                )
+            }
+            
             let config = DiscoveryConfiguration(
-                discoveryMethod: .bluetoothScan,
+                discoveryMethod: discoveryMethod!,
+                locationId: locationId,
                 simulated: simulated
             )
             
@@ -102,7 +118,7 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
             }
             break;
             
-        case "connectToReader":
+        case "connectBluetoothReader":
             if(Terminal.shared.connectionStatus == ConnectionStatus.notConnected){
                 let arguments = call.arguments as! Dictionary<String, Any>?
                 
