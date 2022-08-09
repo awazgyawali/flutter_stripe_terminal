@@ -475,6 +475,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     result.error(
                         "stripeTerminal#unableToDisconnect",
                         "No reader connected to disconnect from.",
+                        null
                     )
                 }
             }
