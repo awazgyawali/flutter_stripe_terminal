@@ -63,8 +63,8 @@ class _MyAppState extends State<MyApp> {
     _initStripe();
   }
 
-  _initStripe() {
-    stripeTerminal = StripeTerminal(
+  _initStripe() async {
+    stripeTerminal = await StripeTerminal.getInstance(
       fetchToken: getConnectionString,
     );
     stripeTerminal.onNativeLogs.listen(_pushLogs);

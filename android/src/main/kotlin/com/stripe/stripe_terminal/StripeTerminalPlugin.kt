@@ -81,6 +81,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                 tokenProvider,
                 listener
             )
+            result?.success(true)
         }
 
     }
@@ -485,7 +486,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     }
 
     var result: Result? = null
-    fun _isPermissionAllowed(result: Result): Boolean {
+    private fun _isPermissionAllowed(result: Result): Boolean {
         val permissionStatus = permissions.map {
             ContextCompat.checkSelfPermission(currentActivity!!, it)
         }
@@ -526,7 +527,6 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
         }
         if (!permissionStatus.contains(PackageManager.PERMISSION_DENIED)) {
             _startStripe()
-            result?.success(true)
         } else {
             result?.error(
                 "stripeTerminal#insuffecientPermission",

@@ -17,11 +17,7 @@ part "models/collect_configuration.dart";
 class StripeTerminal {
   static const MethodChannel _channel = MethodChannel('stripe_terminal');
   Future<String> Function() fetchToken;
-
-  /// Initializes the terminal SDK
-  StripeTerminal({
-    /// A callback function that returns a Future which resolves to a connection token from your backend
-    /// Check out more at https://stripe.com/docs/terminal/payments/setup-integration#connection-token
+  StripeTerminal._internal({
     required this.fetchToken,
   }) {
     _channel.setMethodCallHandler((call) async {
@@ -44,7 +40,18 @@ class StripeTerminal {
           return null;
       }
     });
-    _channel.invokeMethod("init");
+  }
+
+  /// Initializes the terminal SDK
+  static Future<StripeTerminal> getInstance({
+    /// A callback function that returns a Future which resolves to a connection token from your backend
+    /// Check out more at https://stripe.com/docs/terminal/payments/setup-integration#connection-token
+    required Future<String> Function() fetchToken,
+  }) async {
+    StripeTerminal _stripeTerminal =
+        StripeTerminal._internal(fetchToken: fetchToken);
+    await _channel.invokeMethod("init");
+    return _stripeTerminal;
   }
 
   final StreamController<StripeLog> _logsStreamController =
