@@ -1,5 +1,6 @@
-## 1.4.0
+## 1.4.0+2
 Added `connectToInternetReader` function and deprecated `connecttoReader` instead use `connectToBluetoothReader`
+Fixed re listen bug
 ## 1.3.4
 `disconnectFromReader` function has been added
 
