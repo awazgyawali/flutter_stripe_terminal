@@ -109,12 +109,13 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     "Started the discover process. Simulated mode: $simulated"
                 )
 
-                val discoveryMethod = StripeTerminalParser.getScanMethod(discoverConfig["discoveryMethod"] as String)
-                    ?: return result.error(
-                        "stripeTerminal#invalidRequest",
-                        "`discoveryMethod` is not provided on discoverReaders function",
-                        null
-                    )
+                val discoveryMethod =
+                    StripeTerminalParser.getScanMethod(discoverConfig["discoveryMethod"] as String)
+                        ?: return result.error(
+                            "stripeTerminal#invalidRequest",
+                            "`discoveryMethod` is not provided on discoverReaders function",
+                            null
+                        )
 
                 val config = DiscoveryConfiguration(
                     isSimulated = discoverConfig["simulated"] as Boolean,
@@ -122,7 +123,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     location = discoverConfig["locationId"] as String?
                 )
                 cancelableDiscover?.cancel(
-                    object :Callback{
+                    object : Callback {
                         override fun onFailure(e: TerminalException) {
                         }
 
@@ -201,7 +202,10 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         val readerSerialNumber = arguments["readerSerialNumber"] as String
                         val failIfInUse = arguments["failIfInUse"] as Boolean
 
-                        generateLog("connectToInternetReader", "Started connecting to $readerSerialNumber")
+                        generateLog(
+                            "connectToInternetReader",
+                            "Started connecting to $readerSerialNumber"
+                        )
 
                         val reader = activeReaders.firstOrNull {
                             it.serialNumber == readerSerialNumber
@@ -261,7 +265,10 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         val arguments = call.arguments as HashMap<*, *>
                         val readerSerialNumber = arguments["readerSerialNumber"] as String
 
-                        generateLog("connectBluetoothReader", "Started connecting to $readerSerialNumber")
+                        generateLog(
+                            "connectBluetoothReader",
+                            "Started connecting to $readerSerialNumber"
+                        )
 
                         val reader = activeReaders.firstOrNull {
                             it.serialNumber == readerSerialNumber
@@ -384,7 +391,8 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
                     val collectConfiguration =
                         arguments["collectConfiguration"] as HashMap<*, *>
-                    val collectConfig = CollectConfiguration(skipTipping =  collectConfiguration["skipTipping"] as Boolean);
+                    val collectConfig =
+                        CollectConfiguration(skipTipping = collectConfiguration["skipTipping"] as Boolean);
                     Terminal.getInstance()
                         .retrievePaymentIntent(
                             paymentIntentClientSecret,
@@ -448,7 +456,28 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                             })
                 }
             }
+            "disconnectFromReader" -> {
+                if (Terminal.getInstance().connectedReader != null) {
+                    Terminal.getInstance().disconnectReader(object : Callback {
+                        override fun onFailure(e: TerminalException) {
+                            result.error(
+                                "stripeTerminal#unableToDisconnect",
+                                "Unable to disconnect from a reader because ${e.errorMessage}",
+                                e.stackTraceToString()
+                            )
+                        }
 
+                        override fun onSuccess() {
+                            result.success(true)
+                        }
+                    })
+                } else {
+                    result.error(
+                        "stripeTerminal#unableToDisconnect",
+                        "No reader connected to disconnect from.",
+                    )
+                }
+            }
             else -> result.notImplemented()
         }
 
@@ -520,7 +549,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             }
         )
         cancelableDiscover = null
-        if(Terminal.getInstance().connectedReader != null) {
+        if (Terminal.getInstance().connectedReader != null) {
             Terminal.getInstance().disconnectReader(object : Callback {
                 override fun onFailure(e: TerminalException) {
                 }
