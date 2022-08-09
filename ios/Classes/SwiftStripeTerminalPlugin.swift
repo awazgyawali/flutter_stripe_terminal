@@ -17,10 +17,24 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
     }
     
     
+    
     public init(channel: FlutterMethodChannel) {
         self.methodChannel = channel
         stripeAPIClient = StripeAPIClient(methodChannel: channel)
         Terminal.initialize()
+    }
+    
+    public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+        self.discoverCancelable?.cancel({ error in
+            
+        })
+        
+        self.discoverCancelable = nil
+        if (Terminal.shared.connectedReader!=nil){
+            Terminal.shared.disconnectReader { error in
+                
+            }
+        }
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -209,7 +223,7 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                     )
                     return
                 }
-              
+                
                 let connectionConfig = InternetConnectionConfiguration(
                     failIfInUse: failIfInUse!
                 )
