@@ -30,7 +30,7 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
         })
         
         self.discoverCancelable = nil
-        if (Terminal.shared.connectedReader!=nil){
+        if (Terminal.shared.connectedReader != nil){
             Terminal.shared.disconnectReader { error in
                 
             }
