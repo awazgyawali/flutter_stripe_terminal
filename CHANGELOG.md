@@ -1,4 +1,4 @@
-## 1.4.1+1
+## 1.4.1+2
 Added `connectToInternetReader` function and deprecated `connecttoReader` instead use `connectToBluetoothReader`
 Fixed re listen bug
 Implemented disconnect from reader function on android
