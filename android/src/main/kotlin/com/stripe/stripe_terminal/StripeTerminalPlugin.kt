@@ -528,6 +528,15 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
     override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
+        if (Terminal.getInstance().connectedReader != null) {
+            Terminal.getInstance().disconnectReader(object : Callback {
+                override fun onFailure(e: TerminalException) {
+                }
+
+                override fun onSuccess() {
+                }
+            })
+        }
         cancelableDiscover?.cancel(
             object : Callback {
                 override fun onFailure(e: TerminalException) {
@@ -538,15 +547,6 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             }
         )
         cancelableDiscover = null
-        if (Terminal.getInstance().connectedReader != null) {
-            Terminal.getInstance().disconnectReader(object : Callback {
-                override fun onFailure(e: TerminalException) {
-                }
-
-                override fun onSuccess() {
-                }
-            })
-        }
     }
 
     override fun onDetachedFromActivity() {
