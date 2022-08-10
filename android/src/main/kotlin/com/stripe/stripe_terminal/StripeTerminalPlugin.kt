@@ -123,16 +123,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     discoveryMethod = discoveryMethod,
                     location = discoverConfig["locationId"] as String?
                 )
-                cancelableDiscover?.cancel(
-                    object : Callback {
-                        override fun onFailure(e: TerminalException) {
-                        }
 
-                        override fun onSuccess() {
-                        }
-
-                    }
-                )
                 cancelableDiscover =
                     Terminal.getInstance().discoverReaders(config, object : DiscoveryListener {
 
@@ -155,14 +146,11 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                                 e.message,
                                 e.stackTraceToString()
                             )
-                            cancelableDiscover = null
                         }
 
                         override fun onSuccess() {
-                            cancelableDiscover = null
                             result.success(true)
                         }
-
                     })
             }
             "discoverReaders#stop" -> {

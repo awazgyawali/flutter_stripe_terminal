@@ -68,9 +68,6 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                 locationId: locationId,
                 simulated: simulated
             )
-            self.discoverCancelable?.cancel({ error in
-                
-            })
             
             self.discoverCancelable = Terminal.shared.discoverReaders(config, delegate: self) { error in
                 if let error = error {
