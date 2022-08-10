@@ -101,6 +101,57 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     _startStripe()
                 }
             }
+            "clearReaderDisplay" -> {
+                Terminal.getInstance().clearReaderDisplay(object :Callback{
+                    override fun onFailure(e: TerminalException) {
+                        return result.error(
+                            "stripeTerminal#unableToClearDisplay",
+                            e.errorMessage,
+                            e.stackTraceToString()
+                        )                    }
+
+                    override fun onSuccess() {
+                        result.success(true)
+                    }
+                })
+            }
+            "setReaderDisplay" -> {
+                val arguments = call.arguments as HashMap<*, *>
+                val rawReaderDisplay = arguments["readerDisplay"] as HashMap<*, *>
+
+                val readerDisplay = ReaderDisplay.fromJson(Gson().toJson(rawReaderDisplay))
+                    ?: return result.error(
+                        "stripeTerminal#unableToDisplay",
+                        "Invalid `readerDisplay` value provided",
+                        null
+                    )
+                val cart = Cart.Builder(
+                    currency = readerDisplay.cart.currency,
+                    tax = readerDisplay.cart.tax,
+                    total = readerDisplay.cart.total
+                )
+                cart.lineItems = readerDisplay.cart.lineItems.map {
+                    CartLineItem.Builder(
+                        description = it.description,
+                        quantity = it.quantity,
+                        amount = it.amount
+                    ).build()
+                }
+
+                Terminal.getInstance().setReaderDisplay(cart.build(), object : Callback {
+                    override fun onSuccess() {
+                        result.success(true);
+                    }
+
+                    override fun onFailure(e: TerminalException) {
+                        return result.error(
+                            "stripeTerminal#unableToDisplay",
+                            e.errorMessage,
+                            e.stackTraceToString()
+                        )
+                    }
+                })
+            }
             "discoverReaders#start" -> {
                 val arguments = call.arguments as HashMap<*, *>
                 val discoverConfig = arguments["config"] as HashMap<*, *>

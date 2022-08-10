@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 part "models/log.dart";
 part "utils/strings.dart";
 part "models/reader.dart";
+part "models/reader_display.dart";
 part "models/payment_intent.dart";
 part 'models/payment_method.dart';
 part "models/discover_config.dart";
@@ -132,6 +133,18 @@ class StripeTerminal {
     } else {
       return disconnected;
     }
+  }
+
+  /// Displays the content to the connected reader's display
+  Future<void> setReaderDisplay(ReaderDisplay readerDisplay) async {
+    await _channel.invokeMethod<bool?>("setReaderDisplay", {
+      "readerDisplay": readerDisplay.toMap(),
+    });
+  }
+
+  /// Clears connected reader's displays
+  Future<void> clearReaderDisplay() async {
+    await _channel.invokeMethod<bool?>("clearReaderDisplay");
   }
 
   /// Checks the connection status of the SDK

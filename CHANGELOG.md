@@ -1,18 +1,21 @@
+## 1.4.2
+- Added `setReaderDisplay` and `clearReaderDisplay` functions
+
 ## 1.4.1+2
-Added `connectToInternetReader` function and deprecated `connecttoReader` instead use `connectToBluetoothReader`
-Fixed re listen bug
-Implemented disconnect from reader function on android
-Added `StripeTerminal.getInstance` function to create a new stripe instance.
-Fixed disconnecting issue
+- Added `connectToInternetReader` function and deprecated `connecttoReader` instead use `connectToBluetoothReader`
+- Fixed re listen bug
+- Implemented disconnect from reader function on android
+- Added `StripeTerminal.getInstance` function to create a new stripe instance.
+- Fixed disconnecting issue
 ## 1.3.4
 `disconnectFromReader` function has been added
 
 ## 1.3.3
-Once the 'collectPaymentMethod' is called, you need to call `processPayment` with same client_secret to make the payment ready.
-Removed `processPayment` function, `collectPaymentMethod` will call it internally.
+- Once the 'collectPaymentMethod' is called, you need to call `processPayment` with same client_secret to make the payment ready.
+- Removed `processPayment` function, `collectPaymentMethod` will call it internally.
 
 ## 1.3.2
-Added support to skipTipping on `collectPaymentMethod` function.
+-Added support to skipTipping on `collectPaymentMethod` function.
 ## 1.3.1
 **Breaking Change**
 Once the 'collectPaymentMethod' is called, you need to call `processPayment` with same client_secret to make the payment ready.

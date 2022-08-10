@@ -192,6 +192,33 @@ class _MyAppState extends State<MyApp> {
               },
             ),
             TextButton(
+              child: const Text("Set reader display"),
+              onPressed: () async {
+                stripeTerminal.setReaderDisplay(
+                  ReaderDisplay(
+                    type: DisplayType.cart,
+                    cart: DisplayCart(
+                      currency: "USD",
+                      tax: 130,
+                      total: 1000,
+                      lineItems: [
+                        DisplayLineItem(
+                          description: "hello 1",
+                          quantity: 1,
+                          amount: 500,
+                        ),
+                        DisplayLineItem(
+                          description: "hello 2",
+                          quantity: 1,
+                          amount: 500,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            TextButton(
               child: const Text("Collect Payment Method"),
               onPressed: () async {
                 paymentIntentId = await createPaymentIntent();

@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import Foundation
 import StripeTerminal
 
 public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelegate, BluetoothReaderDelegate {
@@ -44,6 +45,72 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                 Terminal.setTokenProvider(stripeAPIClient)
             }
             result(nil)
+            break;
+            
+        case "clearReaderDisplay":
+            Terminal.shared.clearReaderDisplay { error in
+                if(error == nil){
+                    result(true)
+                } else {
+                    result(
+                        FlutterError(
+                            code: "stripeTerminal#unableToClearDisplay",
+                            message: error!.localizedDescription,
+                            details: nil
+                        )
+                    )
+                }
+            }
+        case "setReaderDisplay":
+            do {
+                let arguments = call.arguments as! Dictionary<String, Any>
+                let rawReaderDisplay = arguments["readerDisplay"] as! Dictionary<String, Any>
+                let dataReaderDisplay = try JSONSerialization.data(withJSONObject: rawReaderDisplay, options: .prettyPrinted)
+                let readerDisplay = try? JSONDecoder().decode(ReaderDisplay.self, from: dataReaderDisplay)
+                if(readerDisplay == nil) {
+                    return result(
+                        FlutterError(
+                            code: "stripeTerminal#unableToDisplay",
+                            message: "Invalid `readerDisplay` value provided",
+                            details: nil
+                        )
+                    )
+                }
+                
+                    
+                let cart = Cart(
+                    currency: readerDisplay!.cart.currency,
+                    tax: readerDisplay!.cart.tax,
+                    total: readerDisplay!.cart.total
+                )
+                    
+                readerDisplay?.cart.lineItems.forEach({ item in
+                    cart.lineItems.add(CartLineItem(displayName: item.description, quantity: item.quantity, amount: item.amount))
+                })
+
+                Terminal.shared.setReaderDisplay(cart) { (error) in
+                    if(error == nil){
+                        result(true)
+                    } else {
+                        result(
+                            FlutterError(
+                                code: "stripeTerminal#unableToDisplay",
+                                message: error!.localizedDescription,
+                                details: nil
+                            )
+                        )
+                    }
+                }
+                
+            } catch {
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#unableToDisplay",
+                        message: "Invalid `readerDisplay` value provided",
+                        details: nil
+                    )
+                )
+            }
             break;
         case "discoverReaders#start":
             let arguments = call.arguments as! Dictionary<String, Any>
