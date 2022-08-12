@@ -25,20 +25,20 @@ class _MyAppState extends State<MyApp> {
   final Dio _dio = Dio(
     BaseOptions(
       // TODO: THIS URL does not work
-      baseUrl: "https://fe9f-103-163-182-2.in.ngrok.io",
+      baseUrl: "https://deb8-103-163-182-241.in.ngrok.io",
     ),
   );
 
   Future<String> getConnectionString() async {
     // get api call using _dio to get connection token
     Response response = await _dio.get("/connectionToken");
-    if (!jsonDecode(response.data)["success"]) {
+    if (!(response.data)["success"]) {
       throw Exception(
         "Failed to get connection token because ${response.data["message"]}",
       );
     }
 
-    return jsonDecode(response.data)["token"];
+    return (response.data)["data"];
   }
 
   Future<void> _pushLogs(StripeLog log) async {

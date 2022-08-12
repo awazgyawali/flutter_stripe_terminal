@@ -16,9 +16,7 @@ data class ReaderDisplay (
 }
 
 data class DisplayCart (
-    @Json(name = "line_items")
     val lineItems: List<DisplayLineItem>,
-
     val tax: Long,
     val total: Long,
     val currency: String
