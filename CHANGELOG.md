@@ -1,3 +1,6 @@
+## 1.4.2+2
+- Added more documentation
+
 ## 1.4.2+1
 - Fixed `setReaderDisplay` and `clearReaderDisplay` functions
 

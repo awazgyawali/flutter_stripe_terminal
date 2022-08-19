@@ -1,13 +1,11 @@
 library stripe_terminal;
 
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 part "models/log.dart";
-part "utils/strings.dart";
 part "models/reader.dart";
 part "models/reader_display.dart";
 part "models/payment_intent.dart";
@@ -16,15 +14,20 @@ part "models/discover_config.dart";
 part "models/collect_configuration.dart";
 
 class StripeTerminal {
+  // Method Channel on which the package operates with the native platform.
   static const MethodChannel _channel = MethodChannel('stripe_terminal');
-  Future<String> Function() fetchToken;
+  final Future<String> Function() _fetchToken;
+
+  /// Creates an internal `StripeTerminal` instance
   StripeTerminal._internal({
-    required this.fetchToken,
-  }) {
+    /// A callback function that is supposed to return a
+    /// terminal connection token from backend.
+    required Future<String> Function() fetchToken,
+  }) : _fetchToken = fetchToken {
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case "requestConnectionToken":
-          return fetchToken();
+          return _fetchToken();
         case "onNativeLog":
           _logsStreamController.add(StripeLog(
             code: call.arguments["code"] as String,
@@ -36,7 +39,7 @@ class StripeTerminal {
           _readerStreamController.add(
             readers.map<StripeReader>((e) => StripeReader.fromJson(e)).toList(),
           );
-          return fetchToken();
+          return _fetchToken();
         default:
           return null;
       }
@@ -49,12 +52,14 @@ class StripeTerminal {
     /// Check out more at https://stripe.com/docs/terminal/payments/setup-integration#connection-token
     required Future<String> Function() fetchToken,
   }) async {
-    StripeTerminal _stripeTerminal =
-        StripeTerminal._internal(fetchToken: fetchToken);
+    StripeTerminal _stripeTerminal = StripeTerminal._internal(
+      fetchToken: fetchToken,
+    );
     await _channel.invokeMethod("init");
     return _stripeTerminal;
   }
 
+  /// Stream controller for the logs coming from the native platform
   final StreamController<StripeLog> _logsStreamController =
       StreamController<StripeLog>();
 
@@ -69,7 +74,12 @@ class StripeTerminal {
     "Please use `connectBluetoothReader` function instead to connect to the bluetooth reader",
   )
   Future<bool> connectToReader(
+    /// Serial number of the reader to connect with
     String readerSerialNumber, {
+
+    /// The id of the location on which you want to conenct this bluetooth reader with.
+    ///
+    /// Either you have to provide a location here or the device should already be registered to a location
     String? locationId,
   }) async {
     bool? connected =
@@ -88,7 +98,13 @@ class StripeTerminal {
   ///
   /// Always run `discoverReaders` before calling this function
   Future<bool> connectBluetoothReader(
+    /// Serial number of the bluetooth reader to connect with
     String readerSerialNumber, {
+
+    /// The id of the location on which you want to conenct this bluetooth reader with.
+    ///
+    /// Either you have to provide a location here or the device should already be registered to a location
+
     String? locationId,
   }) async {
     bool? connected =
@@ -107,7 +123,10 @@ class StripeTerminal {
   ///
   /// Always run `discoverReaders` before calling this function
   Future<bool> connectToInternetReader(
+    /// Serial number of the internet reader to connect with
     String readerSerialNumber, {
+
+    /// Weather the connection process should fail if the device is already in use
     bool failIfInUse = false,
   }) async {
     bool? connected =
@@ -136,7 +155,12 @@ class StripeTerminal {
   }
 
   /// Displays the content to the connected reader's display
-  Future<void> setReaderDisplay(ReaderDisplay readerDisplay) async {
+  Future<void> setReaderDisplay(
+    /// Display information for the reader to be shown on the screen
+    ///
+    /// Supports on the devices which has a display
+    ReaderDisplay readerDisplay,
+  ) async {
     await _channel.invokeMethod<bool?>("setReaderDisplay", {
       "readerDisplay": readerDisplay.toMap(),
     });
@@ -182,7 +206,10 @@ class StripeTerminal {
   /// Can contain an empty array if no readers are found.
   ///
   /// [simulated] se to `true` will simulate readers which can be connected and tested.
-  Stream<List<StripeReader>> discoverReaders(DiscoverConfig config) {
+  Stream<List<StripeReader>> discoverReaders(
+    /// Configuration for the discovry process
+    DiscoverConfig config,
+  ) {
     _readerStreamController = StreamController<List<StripeReader>>();
 
     _channel.invokeMethod("discoverReaders#start", {
@@ -205,7 +232,10 @@ class StripeTerminal {
   ///
   /// Only supports `swipe`, `tap` and `insert` method
   Future<StripePaymentIntent> collectPaymentMethod(
+    // Client secret of the payment intent which you want to collect payment mwthod for
     String clientSecret, {
+
+    /// Configruation for the collection process
     CollectConfiguration? collectConfiguration = const CollectConfiguration(
       skipTipping: true,
     ),
