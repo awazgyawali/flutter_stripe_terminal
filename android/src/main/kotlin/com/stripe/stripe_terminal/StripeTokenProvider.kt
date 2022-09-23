@@ -12,7 +12,6 @@ class StripeTokenProvider(val activity: Activity, val methodChannel: MethodChann
     override fun fetchConnectionToken(callback: ConnectionTokenCallback) {
         try {
             activity.runOnUiThread {
-
                 methodChannel.invokeMethod(
                     "requestConnectionToken",
                     null,
