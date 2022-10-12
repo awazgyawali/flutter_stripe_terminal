@@ -247,4 +247,10 @@ class StripeTerminal {
 
     return StripePaymentIntent.fromMap(paymentIntent);
   }
+
+  Future<bool> cancelPayment() async {
+    bool cancelResult = await _channel.invokeMethod("cancelPayment");
+
+    return cancelResult;
+  }
 }

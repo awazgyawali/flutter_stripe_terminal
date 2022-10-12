@@ -10,6 +10,8 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
     let methodChannel: FlutterMethodChannel
     var discoverCancelable: Cancelable?
     var readers: [Reader] = []
+
+    var paymentCancelable: Cancelable?
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "stripe_terminal", binaryMessenger: registrar.messenger())
@@ -421,6 +423,32 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                     }
                 }
             }
+            break;
+        case "cancelPayment":
+            if(self.paymentCancelable == nil){
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#unableToCancelPayment",
+                        message: "There is no processing action running to stop.",
+                        details: nil
+                    )
+                )
+            } else {
+                self.paymentCancelable?.cancel({ error in
+                    if let error = error {
+                        result(
+                            FlutterError(
+                                code: "stripeTerminal#unableToCancelPayment",
+                                message: "Unable to stop the payment action because \(error.localizedDescription) ",
+                                details: nil
+                            )
+                        )
+                    } else {
+                        result(true)
+                    }
+                })
+            }
+            self.paymentCancelable = nil;
             break;
         default:
             result(
