@@ -394,7 +394,7 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                         )
                     )
                 } else {
-                    paymentCancelable = Terminal.shared.collectPaymentMethod(paymentIntent!, collectConfig: collectConfig) { paymentIntent, error in
+                    self.paymentCancelable = Terminal.shared.collectPaymentMethod(paymentIntent!, collectConfig: collectConfig) { paymentIntent, error in
                         if let error = error {
                             result(
                                 FlutterError(
