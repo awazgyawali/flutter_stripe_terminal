@@ -3,7 +3,7 @@ import UIKit
 import Foundation
 import StripeTerminal
 
-public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelegate, BluetoothReaderDelegate {
+public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin {
     
     
     let stripeAPIClient: StripeAPIClient
@@ -188,7 +188,7 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                     result(
                         FlutterError(
                             code: "stripeTerminal#unableToDisconnect",
-                            message: "Unable to disconnect from device because \(err?.localizedDescription)",
+                            message: "Unable to disconnect from device because \(err!.localizedDescription)",
                             details: nil
                         )
                     )
@@ -198,6 +198,59 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
                 
             }
             break;
+        
+            
+        case "connectLocalMobileReader":
+            if #available(iOS 16, *) {
+                if (Terminal.shared.connectionStatus == .notConnected) {
+                    let arguments = call.arguments as! Dictionary<String, Any>?
+                    
+                    let readerSerialNumber = arguments!["readerSerialNumber"] as! String?
+                    
+                    let reader = readers.first { reader in
+                        return reader.serialNumber == readerSerialNumber
+                    }
+                    
+                    if reader == nil  {
+                        result(
+                            FlutterError(
+                                code: "stripeTerminal#readerNotFound",
+                                message: "Reader with provided serial number no longer exists",
+                                details: nil
+                            )
+                        )
+                        return
+                    }
+                    
+                    let locationId = arguments!["locationId"] as? String? ?? reader?.locationId
+                    
+                    if locationId == nil {
+                        result(
+                            FlutterError(
+                                code: "stripeTerminal#locationNotProvided",
+                                message: "Either you have to provide the location id or device should be attached to a location",
+                                details: nil
+                            )
+                        )
+                        return
+                    }
+                    
+                    let connectionConfig = LocalMobileConnectionConfiguration(locationId: locationId!)
+                    Terminal.shared.connectLocalMobileReader(reader!, delegate: self, connectionConfig: connectionConfig) { reader, error in
+                        if reader != nil {
+                            result(true)
+                        } else {
+                            result(
+                                FlutterError(
+                                    code: "stripeTerminal#unableToConnect",
+                                    message: error?.localizedDescription,
+                                    details: nil
+                                )
+                            )
+                        }
+                    }
+                }
+            }
             
         case "connectBluetoothReader":
             if(Terminal.shared.connectionStatus == ConnectionStatus.notConnected){
@@ -433,39 +486,6 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
         }
     }
     
-    public func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
-        self.readers = readers;
-        let parsedReaders = readers.map { reader -> Dictionary<String, Any> in
-            return reader.toDict()
-        }
-        
-        methodChannel.invokeMethod("onReadersFound", arguments: parsedReaders)
-    }
-    
-    public func reader(_ reader: Reader, didReportAvailableUpdate update: ReaderSoftwareUpdate) {
-        
-    }
-    
-    public func reader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
-        
-    }
-    
-    public func reader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
-        
-    }
-    
-    public func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
-        
-    }
-    
-    public func reader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions = []) {
-        
-    }
-    
-    public func reader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
-        
-    }
-    
     private func generateLog(code: String, message: String) {
         var log: Dictionary<String, String> = Dictionary<String, String>()
         
@@ -476,6 +496,50 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin, DiscoveryDelega
     }
 }
 
+extension SwiftStripeTerminalPlugin: DiscoveryDelegate, BluetoothReaderDelegate, LocalMobileReaderDelegate {
+    public func terminal(_ terminal: Terminal, didUpdateDiscoveredReaders readers: [Reader]) {
+        self.readers = readers;
+        let parsedReaders = readers.map { reader -> Dictionary<String, Any> in
+            return reader.toDict()
+        }
+        
+        methodChannel.invokeMethod("onReadersFound", arguments: parsedReaders)
+    }
+    
+    public func reader(_ reader: Reader, didReportAvailableUpdate update: ReaderSoftwareUpdate) {
+    }
+    
+    public func reader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
+    }
+    
+    public func reader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
+    }
+    
+    public func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
+    }
+    
+    public func reader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions = []) {
+    }
+    
+    public func reader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
+    }
+    
+    public func localMobileReader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
+    }
+    
+    public func localMobileReader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
+    }
+    
+    public func localMobileReader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
+    }
+    
+    public func localMobileReader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions = []) {
+    }
+    
+    public func localMobileReader(_ reader: Reader, didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage) {
+    }
+    
+}
 
 extension Reader{
     func toDict()-> Dictionary<String, Any>{
