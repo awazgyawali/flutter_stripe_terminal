@@ -2,11 +2,15 @@ package com.stripe.stripe_terminal
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.preference.PreferenceManager
+import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -587,7 +591,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     ): Boolean {
 
         if (getBooleanPreferenceValue(currentActivity!!.applicationContext, "isFirstTimeExecution")) {
-            Log.d(TAG, "First time Execution");
+            Log.d("STRIPE_TERMINAL", "First time Execution");
             setBooleanPreferenceValue(currentActivity!!.applicationContext, "isFirstTimeExecution", true);
             // do your first time execution stuff here,
         } else {
