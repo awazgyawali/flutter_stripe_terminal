@@ -592,7 +592,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
         if (getBooleanPreferenceValue(currentActivity!!.applicationContext, "isFirstTimeExecution")) {
             Log.d("STRIPE_TERMINAL", "First time Execution");
-            setBooleanPreferenceValue(currentActivity!!.applicationContext, "isFirstTimeExecution", true);
+            setBooleanPreferenceValue(currentActivity!!.applicationContext, "isFirstTimeExecution", false);
             // do your first time execution stuff here,
         } else {
             val permissionStatus = permissions.map {
