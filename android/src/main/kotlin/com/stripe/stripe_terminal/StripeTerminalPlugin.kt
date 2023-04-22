@@ -96,7 +96,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
      */
     fun getBooleanPreferenceValue(context: Context?, key: String?): Boolean {
         val sp: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        return sp.getBoolean(key, false)
+        return sp.getBoolean(key, true)
     }
 
     fun _startStripe() {
