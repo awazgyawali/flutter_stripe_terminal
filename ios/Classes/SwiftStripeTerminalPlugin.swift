@@ -250,6 +250,14 @@ public class SwiftStripeTerminalPlugin: NSObject, FlutterPlugin {
                         }
                     }
                 }
+            } else {
+                result(
+                    FlutterError(
+                        code: "stripeTerminal#TapToPayOniPhone",
+                        message: "Tap to Pay on iPhone not supported on your device.",
+                        details: nil
+                    )
+                )
             }
             
         case "connectBluetoothReader":
