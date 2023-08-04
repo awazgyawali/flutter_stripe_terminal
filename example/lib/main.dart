@@ -22,26 +22,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final Dio _dio = Dio();
+  final Dio _dio = Dio(
+    BaseOptions(
+      // TODO: THIS URL does not work
+      baseUrl: "https://deb8-103-163-182-241.in.ngrok.io",
+    ),
+  );
 
   Future<String> getConnectionString() async {
     // get api call using _dio to get connection token
-    var uname = 'sk_test_tR3PYbcVNZZ796tH88S4VQ2u';
-    var pword = '';
-    var authn = 'Basic ' + base64Encode(utf8.encode('$uname:$pword'));
-
-    Response response = await _dio.post(
-      'https://api.stripe.com/v1/terminal/connection_tokens',
-      options: Options(headers: {'Authorization': authn}),
-    );
-
-    if (response.statusCode != 200) {
+    Response response = await _dio.get("/connectionToken");
+    if (!(response.data)["success"]) {
       throw Exception(
         "Failed to get connection token because ${response.data["message"]}",
       );
     }
 
-    return (response.data)["secret"];
+    return (response.data)["data"];
   }
 
   Future<void> _pushLogs(StripeLog log) async {
@@ -50,33 +47,16 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<String> createPaymentIntent() async {
-    var uname = 'sk_test_tR3PYbcVNZZ796tH88S4VQ2u';
-    var pword = '';
-    var authn = 'Basic ' + base64Encode(utf8.encode('$uname:$pword'));
-
-    try {
-      Response response = await _dio.post(
-        'https://api.stripe.com/v1/payment_intents',
-        options: Options(
-          headers: {'Authorization': authn},
-          contentType: 'application/x-www-form-urlencoded',
-        ),
-        data: {
-          'amount': 100,
-          'currency': 'usd',
-          'capture_method': 'manual',
-        },
-      );
-
-      return (response.data)["client_secret"];
-    } catch (e) {
-      debugPrint('Error ${e.toString()}');
-      rethrow;
-    }
+    Response invoice = await _dio.post("/createPaymentIntent", data: {
+      "email": "awazgyawali@gmail.com",
+      "order": {"test": "1"},
+      "ticketCount": 3,
+      "price": 5,
+    });
+    return jsonDecode(invoice.data)["paymentIntent"]["client_secret"];
   }
 
   late StripeTerminal stripeTerminal;
-
   @override
   void initState() {
     super.initState();
@@ -101,7 +81,7 @@ class _MyAppState extends State<MyApp> {
       appBar: AppBar(
         title: const Text('Plugin example app'),
       ),
-      body: SingleChildScrollView(
+      body: Center(
         child: Column(
           children: [
             ListTile(
@@ -184,7 +164,7 @@ class _MyAppState extends State<MyApp> {
                   leading: Text(e.locationId ?? "No Location Id"),
                   onTap: () async {
                     await stripeTerminal
-                        .connectBluetoothReader(
+                        .connectToReader(
                       e.serialNumber,
                       locationId: "tml_EoMcZwfY6g8btZ",
                     )
