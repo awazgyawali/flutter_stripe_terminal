@@ -26,7 +26,7 @@ class StripeReader {
     return StripeReader(
       locationStatus: LocationStatus.values[json["locationStatus"]],
       batteryStatus: BatteryStatus.values[json["batteryStatus"]],
-      deviceType: DeviceType.values[json["deviceType"]],
+      deviceType: DeviceType.fromId(int.parse(json["deviceType"].toString())),
       originalJSON: Map.from(json["originalJSON"] ?? {}),
       simulated: json["simulated"],
       label: json["label"],
@@ -73,21 +73,23 @@ enum BatteryStatus {
 }
 
 enum DeviceType {
-  chipper2X,
+  chipper2X(0),
+  verifoneP400(1),
+  wisePad3(2),
+  stripeM2(3),
+  wisePosE(4),
+  wisePosEDevKit(5),
+  stripeS700(9),
+  stripeS700DevKit(10),
+  appleBuiltIn(11);
 
-  verifoneP400,
+  const DeviceType(this.deviceType);
 
-  wisePad3,
+  factory DeviceType.fromId(int id) {
+    return values.firstWhere((element) => element.deviceType == id);
+  }
 
-  stripeM2,
-
-  wisePosE,
-
-  chipper1X,
-
-  wiseCube,
-
-  unknown
+  final int deviceType;
 }
 
 enum ConnectionStatus { notConnected, connected, connecting }

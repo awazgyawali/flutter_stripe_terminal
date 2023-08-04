@@ -76,7 +76,6 @@ class StripeTerminal {
   Future<bool> connectToReader(
     /// Serial number of the reader to connect with
     String readerSerialNumber, {
-
     /// The id of the location on which you want to conenct this bluetooth reader with.
     ///
     /// Either you have to provide a location here or the device should already be registered to a location
@@ -94,13 +93,36 @@ class StripeTerminal {
     }
   }
 
+  /// Connects to a iPhone reader (Tap on iPhone), only works if you have scanned devices within this session.
+  ///
+  /// Always run `discoverReaders` before calling this function
+  Future<bool> connectLocalMobileReader(
+    /// Serial number of the local reader to connect with
+    String readerSerialNumber, {
+    /// The id of the location on which you want to conenct this iPhone reader with.
+    ///
+    /// Either you have to provide a location here or the device should already be registered to a location
+
+    String? locationId,
+  }) async {
+    bool? connected =
+        await _channel.invokeMethod<bool?>("connectLocalMobileReader", {
+      "locationId": locationId,
+      "readerSerialNumber": readerSerialNumber,
+    });
+    if (connected == null) {
+      throw Exception("Unable to connect to the reader");
+    } else {
+      return connected;
+    }
+  }
+
   /// Connects to a bluetooth reader, only works if you have scanned devices within this session.
   ///
   /// Always run `discoverReaders` before calling this function
   Future<bool> connectBluetoothReader(
     /// Serial number of the bluetooth reader to connect with
     String readerSerialNumber, {
-
     /// The id of the location on which you want to conenct this bluetooth reader with.
     ///
     /// Either you have to provide a location here or the device should already be registered to a location
@@ -125,7 +147,6 @@ class StripeTerminal {
   Future<bool> connectToInternetReader(
     /// Serial number of the internet reader to connect with
     String readerSerialNumber, {
-
     /// Weather the connection process should fail if the device is already in use
     bool failIfInUse = false,
   }) async {
@@ -234,7 +255,6 @@ class StripeTerminal {
   Future<StripePaymentIntent> collectPaymentMethod(
     // Client secret of the payment intent which you want to collect payment mwthod for
     String clientSecret, {
-
     /// Configruation for the collection process
     CollectConfiguration? collectConfiguration = const CollectConfiguration(
       skipTipping: true,
