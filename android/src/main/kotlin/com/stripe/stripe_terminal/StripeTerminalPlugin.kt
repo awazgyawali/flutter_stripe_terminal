@@ -42,7 +42,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     private var cancelableDiscover: Cancelable? = null
     private var activeReaders: List<Reader> = arrayListOf()
     private var simulated = false
-    private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.BLUETOOTH,
@@ -101,14 +101,20 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
     fun _startStripe() {
         // Pass in the current application context, your desired logging level, your token provider, and the listener you created
-        if (!Terminal.isInitialized()) {
-            Terminal.initTerminal(
+        try {
+            if (!Terminal.isInitialized()) {
+                Terminal.initTerminal(
                     currentActivity!!.applicationContext,
                     logLevel,
                     tokenProvider,
                     listener
-            )
-            result?.success(true)
+                )
+                result?.success(true)
+            }
+        } catch (e: Exception) { // Catch the specific exception type if known
+            e.printStackTrace()
+            // Handle the exception as needed
+            // result?.error("Initialization Error", "Failed to initialize the Terminal", null)
         }
 
     }
