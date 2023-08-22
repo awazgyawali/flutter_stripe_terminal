@@ -42,7 +42,7 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     private var cancelableDiscover: Cancelable? = null
     private var activeReaders: List<Reader> = arrayListOf()
     private var simulated = false
-    private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.BLUETOOTH,
