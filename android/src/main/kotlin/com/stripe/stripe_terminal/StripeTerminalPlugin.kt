@@ -2,11 +2,15 @@ package com.stripe.stripe_terminal
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import android.preference.PreferenceManager
+import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -29,7 +33,7 @@ import io.flutter.plugin.common.PluginRegistry
 
 /** StripeTerminalPlugin */
 class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
-    PluginRegistry.RequestPermissionsResultListener, ActivityAware, FlutterActivityEvents {
+        PluginRegistry.RequestPermissionsResultListener, ActivityAware, FlutterActivityEvents {
 
     private lateinit var channel: MethodChannel
     private var currentActivity: Activity? = null
@@ -40,17 +44,17 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     private var simulated = false
     private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.BLUETOOTH_ADMIN,
-            Manifest.permission.BLUETOOTH_SCAN,
-            Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
         )
     } else {
         arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
         )
     }
 
@@ -71,17 +75,46 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
         channel.setMethodCallHandler(this)
     }
 
+    /**
+     * Sets the boolean preference value
+     *
+     * @param context the current context
+     * @param key     the preference key
+     * @param value   the value to be set
+     */
+    fun setBooleanPreferenceValue(context: Context?, key: String?, value: Boolean) {
+        val sp: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        sp.edit().putBoolean(key, value).apply()
+    }
+
+    /**
+     * Get the boolean preference value from the SharedPreference
+     *
+     * @param context the current context
+     * @param key     the preference key
+     * @return the the preference value
+     */
+    fun getBooleanPreferenceValue(context: Context?, key: String?): Boolean {
+        val sp: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        return sp.getBoolean(key, true)
+    }
 
     fun _startStripe() {
         // Pass in the current application context, your desired logging level, your token provider, and the listener you created
-        if (!Terminal.isInitialized()) {
-            Terminal.initTerminal(
-                currentActivity!!.applicationContext,
-                logLevel,
-                tokenProvider,
-                listener
-            )
-            result?.success(true)
+        try {
+            if (!Terminal.isInitialized()) {
+                Terminal.initTerminal(
+                    currentActivity!!.applicationContext,
+                    logLevel,
+                    tokenProvider,
+                    listener
+                )
+                result?.success(true)
+            }
+        } catch (e: Exception) { // Catch the specific exception type if known
+            e.printStackTrace()
+            // Handle the exception as needed
+            // result?.error("Initialization Error", "Failed to initialize the Terminal", null)
         }
 
     }
@@ -102,13 +135,14 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                 }
             }
             "clearReaderDisplay" -> {
-                Terminal.getInstance().clearReaderDisplay(object :Callback{
+                Terminal.getInstance().clearReaderDisplay(object : Callback {
                     override fun onFailure(e: TerminalException) {
                         return result.error(
-                            "stripeTerminal#unableToClearDisplay",
-                            e.errorMessage,
-                            e.stackTraceToString()
-                        )                    }
+                                "stripeTerminal#unableToClearDisplay",
+                                e.errorMessage,
+                                e.stackTraceToString()
+                        )
+                    }
 
                     override fun onSuccess() {
                         result.success(true)
@@ -120,21 +154,21 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                 val rawReaderDisplay = arguments["readerDisplay"] as HashMap<*, *>
 
                 val readerDisplay = ReaderDisplay.fromJson(Gson().toJson(rawReaderDisplay))
-                    ?: return result.error(
-                        "stripeTerminal#unableToDisplay",
-                        "Invalid `readerDisplay` value provided",
-                        null
-                    )
+                        ?: return result.error(
+                                "stripeTerminal#unableToDisplay",
+                                "Invalid `readerDisplay` value provided",
+                                null
+                        )
                 val cart = Cart.Builder(
-                    currency = readerDisplay.cart.currency,
-                    tax = readerDisplay.cart.tax,
-                    total = readerDisplay.cart.total
+                        currency = readerDisplay.cart.currency,
+                        tax = readerDisplay.cart.tax,
+                        total = readerDisplay.cart.total
                 )
                 cart.lineItems = readerDisplay.cart.lineItems.map {
                     CartLineItem.Builder(
-                        description = it.description,
-                        quantity = it.quantity,
-                        amount = it.amount
+                            description = it.description,
+                            quantity = it.quantity,
+                            amount = it.amount
                     ).build()
                 }
 
@@ -145,9 +179,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
                     override fun onFailure(e: TerminalException) {
                         return result.error(
-                            "stripeTerminal#unableToDisplay",
-                            e.errorMessage,
-                            e.stackTraceToString()
+                                "stripeTerminal#unableToDisplay",
+                                e.errorMessage,
+                                e.stackTraceToString()
                         )
                     }
                 })
@@ -157,67 +191,67 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                 val discoverConfig = arguments["config"] as HashMap<*, *>
 
                 generateLog(
-                    "discoverReaders",
-                    "Started the discover process. Simulated mode: $simulated"
+                        "discoverReaders",
+                        "Started the discover process. Simulated mode: $simulated"
                 )
 
                 val discoveryMethod =
-                    StripeTerminalParser.getScanMethod(discoverConfig["discoveryMethod"] as String)
-                        ?: return result.error(
-                            "stripeTerminal#invalidRequest",
-                            "`discoveryMethod` is not provided on discoverReaders function",
-                            null
-                        )
+                        StripeTerminalParser.getScanMethod(discoverConfig["discoveryMethod"] as String)
+                                ?: return result.error(
+                                        "stripeTerminal#invalidRequest",
+                                        "`discoveryMethod` is not provided on discoverReaders function",
+                                        null
+                                )
 
                 val config = DiscoveryConfiguration(
-                    isSimulated = discoverConfig["simulated"] as Boolean,
-                    discoveryMethod = discoveryMethod,
-                    location = discoverConfig["locationId"] as String?
+                        isSimulated = discoverConfig["simulated"] as Boolean,
+                        discoveryMethod = discoveryMethod,
+                        location = discoverConfig["locationId"] as String?
                 )
 
                 cancelableDiscover =
-                    Terminal.getInstance().discoverReaders(config, object : DiscoveryListener {
+                        Terminal.getInstance().discoverReaders(config, object : DiscoveryListener {
 
-                        override fun onUpdateDiscoveredReaders(readers: List<Reader>) {
-                            activeReaders = readers
-                            val rawReaders = readers.map {
-                                it.rawJson()
+                            override fun onUpdateDiscoveredReaders(readers: List<Reader>) {
+                                activeReaders = readers
+                                val rawReaders = readers.map {
+                                    it.rawJson()
+                                }
+                                currentActivity?.runOnUiThread {
+                                    channel.invokeMethod("onReadersFound", rawReaders)
+                                    generateLog("onUpdateDiscoveredReaders", Gson().toJson(rawReaders))
+                                }
                             }
-                            currentActivity?.runOnUiThread {
-                                channel.invokeMethod("onReadersFound", rawReaders)
-                                generateLog("onUpdateDiscoveredReaders", Gson().toJson(rawReaders))
+
+
+                        }, object : Callback {
+                            override fun onFailure(e: TerminalException) {
+                                result.error(
+                                        "stripeTerminal#unabelToDiscover",
+                                        e.message,
+                                        e.stackTraceToString()
+                                )
                             }
-                        }
 
-
-                    }, object : Callback {
-                        override fun onFailure(e: TerminalException) {
-                            result.error(
-                                "stripeTerminal#unabelToDiscover",
-                                e.message,
-                                e.stackTraceToString()
-                            )
-                        }
-
-                        override fun onSuccess() {
-                            result.success(true)
-                        }
-                    })
+                            override fun onSuccess() {
+                                result.success(true)
+                            }
+                        })
             }
             "discoverReaders#stop" -> {
                 if (cancelableDiscover == null) {
                     result.error(
-                        "stripeTerminal#unabelToCancelDiscover",
-                        "There is no discover action running to stop.",
-                        null
+                            "stripeTerminal#unabelToCancelDiscover",
+                            "There is no discover action running to stop.",
+                            null
                     )
                 } else {
                     cancelableDiscover?.cancel(object : Callback {
                         override fun onFailure(e: TerminalException) {
                             result.error(
-                                "stripeTerminal#unabelToCancelDiscover",
-                                "Unable to stop the discover action because ${e.errorMessage}",
-                                e.stackTraceToString()
+                                    "stripeTerminal#unabelToCancelDiscover",
+                                    "Unable to stop the discover action because ${e.errorMessage}",
+                                    e.stackTraceToString()
                             )
                         }
 
@@ -243,8 +277,8 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         val failIfInUse = arguments["failIfInUse"] as Boolean
 
                         generateLog(
-                            "connectToInternetReader",
-                            "Started connecting to $readerSerialNumber"
+                                "connectToInternetReader",
+                                "Started connecting to $readerSerialNumber"
                         )
 
                         val reader = activeReaders.firstOrNull {
@@ -253,48 +287,48 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
                         if (reader == null) {
                             result.error(
-                                "stripeTerminal#readerNotFound",
-                                "Reader with provided serial number no longer exists",
-                                null
+                                    "stripeTerminal#readerNotFound",
+                                    "Reader with provided serial number no longer exists",
+                                    null
                             )
                             return
                         }
 
 
                         val connectionConfig =
-                            ConnectionConfiguration.InternetConnectionConfiguration(
-                                failIfInUse = failIfInUse
-                            )
+                                ConnectionConfiguration.InternetConnectionConfiguration(
+                                        failIfInUse = failIfInUse
+                                )
                         Terminal.getInstance().connectInternetReader(
-                            reader,
-                            connectionConfig,
-                            object : ReaderCallback {
-                                override fun onFailure(e: TerminalException) {
-                                    result.error(
-                                        "stripeTerminal#unableToConnect",
-                                        e.errorMessage,
-                                        e.stackTraceToString()
-                                    )
-                                }
+                                reader,
+                                connectionConfig,
+                                object : ReaderCallback {
+                                    override fun onFailure(e: TerminalException) {
+                                        result.error(
+                                                "stripeTerminal#unableToConnect",
+                                                e.errorMessage,
+                                                e.stackTraceToString()
+                                        )
+                                    }
 
-                                override fun onSuccess(reader: Reader) {
-                                    result.success(true)
-                                }
+                                    override fun onSuccess(reader: Reader) {
+                                        result.success(true)
+                                    }
 
-                            })
+                                })
                     }
                     ConnectionStatus.CONNECTING -> {
                         result.error(
-                            "stripeTerminal#deviceConnecting",
-                            "A new connection is being established with a device thus you cannot request a new connection at the moment.",
-                            null
+                                "stripeTerminal#deviceConnecting",
+                                "A new connection is being established with a device thus you cannot request a new connection at the moment.",
+                                null
                         )
                     }
                     ConnectionStatus.CONNECTED -> {
                         result.error(
-                            "stripeTerminal#deviceAlreadyConnected",
-                            "A device with serial number ${Terminal.getInstance().connectedReader!!.serialNumber} is already connected",
-                            null
+                                "stripeTerminal#deviceAlreadyConnected",
+                                "A device with serial number ${Terminal.getInstance().connectedReader!!.serialNumber} is already connected",
+                                null
                         )
                     }
                 }
@@ -306,8 +340,8 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                         val readerSerialNumber = arguments["readerSerialNumber"] as String
 
                         generateLog(
-                            "connectBluetoothReader",
-                            "Started connecting to $readerSerialNumber"
+                                "connectBluetoothReader",
+                                "Started connecting to $readerSerialNumber"
                         )
 
                         val reader = activeReaders.firstOrNull {
@@ -316,65 +350,65 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
                         if (reader == null) {
                             result.error(
-                                "stripeTerminal#readerNotFound",
-                                "Reader with provided serial number no longer exists",
-                                null
+                                    "stripeTerminal#readerNotFound",
+                                    "Reader with provided serial number no longer exists",
+                                    null
                             )
                             return
                         }
 
 
                         val locationId: String? = (arguments["locationId"]
-                            ?: reader.location?.id) as String?
+                                ?: reader.location?.id) as String?
 
                         generateLog("connectBluetoothReader", "Location Id $locationId")
 
                         if (locationId == null) {
                             result.error(
-                                "stripeTerminal#locationNotProvided",
-                                "Either you have to provide the location id or device should be attached to a location",
-                                null
+                                    "stripeTerminal#locationNotProvided",
+                                    "Either you have to provide the location id or device should be attached to a location",
+                                    null
                             )
                             return
                         }
                         val connectionConfig =
-                            ConnectionConfiguration.BluetoothConnectionConfiguration(
-                                locationId,
-                            )
+                                ConnectionConfiguration.BluetoothConnectionConfiguration(
+                                        locationId,
+                                )
                         Terminal.getInstance().connectBluetoothReader(
-                            reader,
-                            connectionConfig,
-                            object : BluetoothReaderListener {
+                                reader,
+                                connectionConfig,
+                                object : BluetoothReaderListener {
 
 
-                            },
-                            object : ReaderCallback {
-                                override fun onFailure(e: TerminalException) {
-                                    result.error(
-                                        "stripeTerminal#unableToConnect",
-                                        e.errorMessage,
-                                        e.stackTraceToString()
-                                    )
-                                }
+                                },
+                                object : ReaderCallback {
+                                    override fun onFailure(e: TerminalException) {
+                                        result.error(
+                                                "stripeTerminal#unableToConnect",
+                                                e.errorMessage,
+                                                e.stackTraceToString()
+                                        )
+                                    }
 
-                                override fun onSuccess(reader: Reader) {
-                                    result.success(true)
-                                }
+                                    override fun onSuccess(reader: Reader) {
+                                        result.success(true)
+                                    }
 
-                            })
+                                })
                     }
                     ConnectionStatus.CONNECTING -> {
                         result.error(
-                            "stripeTerminal#deviceConnecting",
-                            "A new connection is being established with a device thus you cannot request a new connection at the moment.",
-                            null
+                                "stripeTerminal#deviceConnecting",
+                                "A new connection is being established with a device thus you cannot request a new connection at the moment.",
+                                null
                         )
                     }
                     ConnectionStatus.CONNECTED -> {
                         result.error(
-                            "stripeTerminal#deviceAlreadyConnected",
-                            "A device with serial number ${Terminal.getInstance().connectedReader!!.serialNumber} is already connected",
-                            null
+                                "stripeTerminal#deviceAlreadyConnected",
+                                "A device with serial number ${Terminal.getInstance().connectedReader!!.serialNumber} is already connected",
+                                null
                         )
                     }
                 }
@@ -384,18 +418,18 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
                 if (Terminal.getInstance().connectedReader == null) {
                     result.error(
-                        "stripeTerminal#deviceNotConnected",
-                        "You must connect to a device before you can use it.",
-                        null
+                            "stripeTerminal#deviceNotConnected",
+                            "You must connect to a device before you can use it.",
+                            null
                     )
                 } else {
                     val params = ReadReusableCardParameters.Builder().build()
                     Terminal.getInstance().readReusableCard(params, object : PaymentMethodCallback {
                         override fun onFailure(e: TerminalException) {
                             result.error(
-                                "stripeTerminal#unableToReadCardDetail",
-                                "Device was not able to read payment method details because ${e.errorMessage}",
-                                e.stackTraceToString()
+                                    "stripeTerminal#unableToReadCardDetail",
+                                    "Device was not able to read payment method details because ${e.errorMessage}",
+                                    e.stackTraceToString()
                             )
                         }
 
@@ -411,89 +445,89 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
                 if (Terminal.getInstance().connectedReader == null) {
                     result.error(
-                        "stripeTerminal#deviceNotConnected",
-                        "You must connect to a device before you can use it.",
-                        null
+                            "stripeTerminal#deviceNotConnected",
+                            "You must connect to a device before you can use it.",
+                            null
                     )
                 } else {
 
                     val arguments = call.arguments as HashMap<*, *>
                     val paymentIntentClientSecret =
-                        arguments["paymentIntentClientSecret"] as String?
+                            arguments["paymentIntentClientSecret"] as String?
                     if (paymentIntentClientSecret == null) {
                         result.error(
-                            "stripeTerminal#invalidPaymentIntentClientSecret",
-                            "The payment intent client_secret seems to be invalid or missing.",
-                            null
+                                "stripeTerminal#invalidPaymentIntentClientSecret",
+                                "The payment intent client_secret seems to be invalid or missing.",
+                                null
                         )
                         return
                     }
 
                     val collectConfiguration =
-                        arguments["collectConfiguration"] as HashMap<*, *>
+                            arguments["collectConfiguration"] as HashMap<*, *>
                     val collectConfig =
-                        CollectConfiguration(skipTipping = collectConfiguration["skipTipping"] as Boolean);
+                            CollectConfiguration(skipTipping = collectConfiguration["skipTipping"] as Boolean);
                     Terminal.getInstance()
-                        .retrievePaymentIntent(
-                            paymentIntentClientSecret,
-                            object : PaymentIntentCallback {
-                                override fun onFailure(e: TerminalException) {
-                                    result.error(
-                                        "stripeTerminal#unableToRetrivePaymentIntent",
-                                        "Stripe was not able to fetch the payment intent with the provided client secret. ${e.errorMessage}",
-                                        e.stackTraceToString()
-                                    )
-                                }
+                            .retrievePaymentIntent(
+                                    paymentIntentClientSecret,
+                                    object : PaymentIntentCallback {
+                                        override fun onFailure(e: TerminalException) {
+                                            result.error(
+                                                    "stripeTerminal#unableToRetrivePaymentIntent",
+                                                    "Stripe was not able to fetch the payment intent with the provided client secret. ${e.errorMessage}",
+                                                    e.stackTraceToString()
+                                            )
+                                        }
 
-                                override fun onSuccess(paymentIntent: PaymentIntent) {
-                                    Terminal.getInstance().collectPaymentMethod(
-                                        paymentIntent,
-                                        object : PaymentIntentCallback {
+                                        override fun onSuccess(paymentIntent: PaymentIntent) {
+                                            Terminal.getInstance().collectPaymentMethod(
+                                                    paymentIntent,
+                                                    object : PaymentIntentCallback {
 
-                                            override fun onSuccess(paymentIntent: PaymentIntent) {
-                                                currentActivity?.runOnUiThread {
-                                                    generateLog(
-                                                        "collectPaymentMethod",
-                                                        Gson().toJson(paymentIntent.rawJson())
-                                                    )
-                                                }
-                                                Terminal.getInstance()
-                                                    .processPayment(
-                                                        paymentIntent,
-                                                        object : PaymentIntentCallback {
-                                                            override fun onSuccess(paymentIntent: PaymentIntent) {
-                                                                currentActivity?.runOnUiThread {
-                                                                    generateLog(
-                                                                        "processPayment",
+                                                        override fun onSuccess(paymentIntent: PaymentIntent) {
+                                                            currentActivity?.runOnUiThread {
+                                                                generateLog(
+                                                                        "collectPaymentMethod",
                                                                         Gson().toJson(paymentIntent.rawJson())
-                                                                    )
-                                                                }
-                                                                result.success(paymentIntent.rawJson())
-                                                            }
-
-                                                            override fun onFailure(e: TerminalException) {
-                                                                result.error(
-                                                                    "stripeTerminal#unableToProcessPayment",
-                                                                    "Stripe reader was not able to process the payment for the provided payment intent. ${e.errorMessage}",
-                                                                    e.stackTraceToString()
                                                                 )
                                                             }
-                                                        })
-                                            }
+                                                            Terminal.getInstance()
+                                                                    .processPayment(
+                                                                            paymentIntent,
+                                                                            object : PaymentIntentCallback {
+                                                                                override fun onSuccess(paymentIntent: PaymentIntent) {
+                                                                                    currentActivity?.runOnUiThread {
+                                                                                        generateLog(
+                                                                                                "processPayment",
+                                                                                                Gson().toJson(paymentIntent.rawJson())
+                                                                                        )
+                                                                                    }
+                                                                                    result.success(paymentIntent.rawJson())
+                                                                                }
 
-                                            override fun onFailure(e: TerminalException) {
-                                                result.error(
-                                                    "stripeTerminal#unableToCollectPaymentMethod",
-                                                    "Stripe reader was not able to collect the payment method for the provided payment intent. ${e.errorMessage}",
-                                                    e.stackTraceToString()
-                                                )
-                                            }
-                                        },
-                                        collectConfig,
-                                    )
-                                }
+                                                                                override fun onFailure(e: TerminalException) {
+                                                                                    result.error(
+                                                                                            "stripeTerminal#unableToProcessPayment",
+                                                                                            "Stripe reader was not able to process the payment for the provided payment intent. ${e.errorMessage}",
+                                                                                            e.stackTraceToString()
+                                                                                    )
+                                                                                }
+                                                                            })
+                                                        }
 
-                            })
+                                                        override fun onFailure(e: TerminalException) {
+                                                            result.error(
+                                                                    "stripeTerminal#unableToCollectPaymentMethod",
+                                                                    "Stripe reader was not able to collect the payment method for the provided payment intent. ${e.errorMessage}",
+                                                                    e.stackTraceToString()
+                                                            )
+                                                        }
+                                                    },
+                                                    collectConfig,
+                                            )
+                                        }
+
+                                    })
                 }
             }
             "disconnectFromReader" -> {
@@ -501,9 +535,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     Terminal.getInstance().disconnectReader(object : Callback {
                         override fun onFailure(e: TerminalException) {
                             result.error(
-                                "stripeTerminal#unableToDisconnect",
-                                "Unable to disconnect from a reader because ${e.errorMessage}",
-                                e.stackTraceToString()
+                                    "stripeTerminal#unableToDisconnect",
+                                    "Unable to disconnect from a reader because ${e.errorMessage}",
+                                    e.stackTraceToString()
                             )
                         }
 
@@ -513,9 +547,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
                     })
                 } else {
                     result.error(
-                        "stripeTerminal#unableToDisconnect",
-                        "No reader connected to disconnect from.",
-                        null
+                            "stripeTerminal#unableToDisconnect",
+                            "No reader connected to disconnect from.",
+                            null
                     )
                 }
             }
@@ -542,9 +576,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
 
         if (cannotAskPermissions.contains(true)) {
             result.error(
-                "stripeTerminal#permissionDeclinedPermanenty",
-                "You have declined the necessary permission, please allow from settings to continue.",
-                null
+                    "stripeTerminal#permissionDeclinedPermanenty",
+                    "You have declined the necessary permission, please allow from settings to continue.",
+                    null
             )
             return false
         }
@@ -557,22 +591,30 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
+            requestCode: Int,
+            permissions: Array<out String>,
+            grantResults: IntArray
     ): Boolean {
-        val permissionStatus = permissions.map {
-            ContextCompat.checkSelfPermission(currentActivity!!, it)
-        }
-        if (!permissionStatus.contains(PackageManager.PERMISSION_DENIED)) {
-            _startStripe()
+
+        if (getBooleanPreferenceValue(currentActivity!!.applicationContext, "isFirstTimeExecution")) {
+            Log.d("STRIPE_TERMINAL", "First time Execution");
+            setBooleanPreferenceValue(currentActivity!!.applicationContext, "isFirstTimeExecution", false);
+            // do your first time execution stuff here,
         } else {
-            result?.error(
-                "stripeTerminal#insuffecientPermission",
-                "You have not provided enough permission for the scanner to work",
-                null
-            )
+            val permissionStatus = permissions.map {
+                ContextCompat.checkSelfPermission(currentActivity!!, it)
+            }
+            if (!permissionStatus.contains(PackageManager.PERMISSION_DENIED)) {
+                _startStripe()
+            } else {
+                result?.error(
+                        "stripeTerminal#insuffecientPermission",
+                        "You have not provided enough permission for the scanner to work",
+                        null
+                )
+            }
         }
+
         return requestCode == REQUEST_CODE_LOCATION
     }
 
@@ -589,13 +631,13 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
             })
         }
         cancelableDiscover?.cancel(
-            object : Callback {
-                override fun onFailure(e: TerminalException) {
-                }
+                object : Callback {
+                    override fun onFailure(e: TerminalException) {
+                    }
 
-                override fun onSuccess() {
+                    override fun onSuccess() {
+                    }
                 }
-            }
         )
         cancelableDiscover = null
     }
