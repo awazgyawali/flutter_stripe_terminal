@@ -682,6 +682,9 @@ class StripeTerminalPlugin : FlutterPlugin, MethodCallHandler,
         TODO("Not yet implemented")
     }
 
+    override fun onWindowFocusChanged(p0: Boolean): Unit {
+        TODO("Not yet implemented")
+    }
 
 }
 
